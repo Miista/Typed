@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using AutoFixture;
 using FluentAssertions;
 using Xunit;
@@ -362,7 +363,7 @@ namespace TypeMerger.Tests
             result.AnotherTargetId.Should().Be(targetId);
         }
     }
-    
+
     internal class OneSideWithConstructor
     {
         public string OneTargetId { get; }
