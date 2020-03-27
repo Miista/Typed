@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace TypeMerger
 {
-    public class TypeMerger
+    public static class TypeMerger
     {
         public static TDestination Merge<TDestination, TLeft, TRight>(TLeft left, TRight right)
             where TDestination : class

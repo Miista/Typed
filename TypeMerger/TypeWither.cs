@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
 
 namespace TypeMerger
 {
-    public class TypeWither
+    public static class TypeWither
     {
-        public static T With<T, TValue>(T @this, Expression<Func<T, TValue>> selector, TValue value) where T : class
+        public static WithBuilder<T> GetBuilder<T>(T @this)
         {
-            var property = (PropertyInfo) ((MemberExpression) selector.Body).Member;
-
-            return With(@this, (property.Name, value));
+            return new WithBuilder<T>(@this);
         }
-        
-        public static T With<T>(T @this, params (string PropertyName, object Value)[] properties) where T : class
+
+        public static T With<T>(T @this, params (string PropertyName, object Value)[] properties)
         {
             if (@this == null) throw new ArgumentNullException(nameof(@this));
 
@@ -24,8 +21,8 @@ namespace TypeMerger
             var propertyDictionary = properties.ToDictionary(tuple => tuple.PropertyName.ToLowerInvariant(), tuple => tuple.Value);
             
             return constructorInfo == null
-                ? WithByProperty<T>(@this, propertyDictionary)
-                : WithByConstructor<T>(@this, propertyDictionary, constructorInfo);
+                ? WithByProperty(@this, propertyDictionary)
+                : WithByConstructor(@this, propertyDictionary, constructorInfo);
         }
 
         private static ConstructorInfo GetSuitableConstructor<T>()
@@ -40,7 +37,6 @@ namespace TypeMerger
             TObject left,
             IReadOnlyDictionary<string, object> properties,
             ConstructorInfo constructorInfo)
-            where TObject : class
         {
             var existingProperties = GetProperties<TObject>();
 
@@ -58,7 +54,9 @@ namespace TypeMerger
                 parameters.Add(value);
             }
 
-            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) as TObject;
+            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TObject
+                ? (TObject) constructorInfo.Invoke(parameters.ToArray())
+                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TObject)}");
 
             return constructedInstance;
         }
@@ -66,7 +64,6 @@ namespace TypeMerger
         private static TObject WithByProperty<TObject>(
             TObject left, 
             IReadOnlyDictionary<string, object> properties)
-            where TObject : class
         {
             var existingProperties = GetProperties<TObject>();
 
