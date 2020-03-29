@@ -26,7 +26,7 @@ namespace TypeMerger
         }
 
         private static TObject WithByConstructor<TObject>(
-            TObject left,
+            TObject instance,
             IReadOnlyDictionary<string, object> properties,
             ConstructorInfo constructorInfo)
         {
@@ -37,11 +37,11 @@ namespace TypeMerger
             foreach (var parameter in constructorInfo.GetParameters())
             {
                 existingProperties.TryGetValue(parameter.Name.ToLowerInvariant(), out var leftProperty);
-                var leftValue = leftProperty?.GetValue(left);
+                var originalValue = leftProperty?.GetValue(instance);
                 
-                var hasRightValue = properties.TryGetValue(parameter.Name.ToLowerInvariant(), out var rightValue);
+                var hasNewValue = properties.TryGetValue(parameter.Name.ToLowerInvariant(), out var newValue);
 
-                var value = hasRightValue ? rightValue : leftValue;
+                var value = hasNewValue ? newValue : originalValue;
                 
                 parameters.Add(value);
             }
@@ -68,15 +68,13 @@ namespace TypeMerger
                     throw new InvalidOperationException($"Property '{parameter.Key}' cannot be written to.");
                 }
                 
-                existingProperties.TryGetValue(parameter.Key.ToLowerInvariant(), out var leftProperty);
-                var leftValue = leftProperty?.GetValue(left);
-                
-                var hasRightValue = properties.TryGetValue(parameter.Key.ToLowerInvariant(), out var rightValue);
+                existingProperties.TryGetValue(parameter.Key.ToLowerInvariant(), out var existingProperty);
+                var originalValue = existingProperty?.GetValue(left);
+                var hasNewValue = properties.TryGetValue(parameter.Key.ToLowerInvariant(), out var newValue);
 
-                var value = hasRightValue ? rightValue : leftValue;
-                
-                var setMethod = parameter.Value.SetMethod;
-                setMethod.Invoke(constructedInstance, new[] {value});
+                var value = hasNewValue ? newValue : originalValue;
+
+                parameter.Value.SetValue(constructedInstance, value);
             }
 
             return constructedInstance;
