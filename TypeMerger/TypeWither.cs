@@ -7,22 +7,22 @@ namespace TypeMerger
 {
     public static class TypeWither
     {
-        public static WithBuilder<T> GetBuilder<T>(T @this)
+        public static WithBuilder<T> GetBuilder<T>(T instance)
         {
-            return new WithBuilder<T>(@this);
+            return new WithBuilder<T>(instance);
         }
 
-        internal static T With<T>(T @this, params (string PropertyName, object Value)[] properties)
+        internal static T With<T>(T instance, params (string PropertyName, object Value)[] properties)
         {
-            if (@this == null) throw new ArgumentNullException(nameof(@this));
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
 
             var constructorInfo = ReflectionUtils.GetSuitableConstructor<T>();
 
             var propertyDictionary = properties.ToDictionary(tuple => tuple.PropertyName.ToLowerInvariant(), tuple => tuple.Value);
             
             return constructorInfo == null
-                ? WithByProperty(@this, propertyDictionary)
-                : WithByConstructor(@this, propertyDictionary, constructorInfo);
+                ? WithByProperty(instance, propertyDictionary)
+                : WithByConstructor(instance, propertyDictionary, constructorInfo);
         }
 
         private static TObject WithByConstructor<TObject>(
