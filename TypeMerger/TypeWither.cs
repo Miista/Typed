@@ -16,7 +16,7 @@ namespace TypeMerger
         {
             if (@this == null) throw new ArgumentNullException(nameof(@this));
 
-            var constructorInfo = GetSuitableConstructor<T>();
+            var constructorInfo = ReflectionUtils.GetSuitableConstructor<T>();
 
             var propertyDictionary = properties.ToDictionary(tuple => tuple.PropertyName.ToLowerInvariant(), tuple => tuple.Value);
             
@@ -25,14 +25,6 @@ namespace TypeMerger
                 : WithByConstructor(@this, propertyDictionary, constructorInfo);
         }
 
-        private static ConstructorInfo GetSuitableConstructor<T>()
-        {
-            return typeof(T)
-                .GetConstructors()
-                .OrderByDescending(info => info.GetParameters().Length)
-                .FirstOrDefault(info => info.GetParameters().Length > 0);
-        }
-        
         private static TObject WithByConstructor<TObject>(
             TObject left,
             IReadOnlyDictionary<string, object> properties,
@@ -71,6 +63,11 @@ namespace TypeMerger
             
             foreach (var parameter in existingProperties)
             {
+                if (!parameter.Value.CanWrite)
+                {
+                    throw new InvalidOperationException($"Property '{parameter.Key}' cannot be written to.");
+                }
+                
                 existingProperties.TryGetValue(parameter.Key.ToLowerInvariant(), out var leftProperty);
                 var leftValue = leftProperty?.GetValue(left);
                 
@@ -78,13 +75,16 @@ namespace TypeMerger
 
                 var value = hasRightValue ? rightValue : leftValue;
                 
-                var setMethod = parameter.Value.GetSetMethod();
+                var setMethod = parameter.Value.SetMethod;
                 setMethod.Invoke(constructedInstance, new[] {value});
             }
 
             return constructedInstance;
         }
 
-        private static Dictionary<string, PropertyInfo> GetProperties<T>() => typeof(T).GetProperties().ToDictionary(info => info.Name.ToLowerInvariant());
+        private static Dictionary<string, PropertyInfo> GetProperties<T>() => 
+            typeof(T)
+                .GetProperties()
+                .ToDictionary(info => info.Name.ToLowerInvariant());
     }
 }

@@ -13,19 +13,11 @@ namespace TypeMerger
             if (left == null) throw new ArgumentNullException(nameof(left));
             if (right == null) throw new ArgumentNullException(nameof(right));
 
-            var constructorInfo = GetSuitableConstructor<TDestination>();
+            var constructorInfo = ReflectionUtils.GetSuitableConstructor<TDestination>();
 
             return constructorInfo == null
                 ? MergeByProperty<TDestination, TLeft, TRight>(left, right)
                 : MergeByConstructor<TDestination, TLeft, TRight>(left, right, constructorInfo);
-        }
-
-        private static ConstructorInfo GetSuitableConstructor<T>()
-        {
-            return typeof(T)
-                .GetConstructors()
-                .OrderByDescending(info => info.GetParameters().Length)
-                .FirstOrDefault(info => info.GetParameters().Length > 0);
         }
 
         private static TDestination MergeByConstructor<TDestination, TLeft, TRight>(
