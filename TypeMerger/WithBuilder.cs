@@ -19,14 +19,14 @@ namespace TypeMerger
 
         public WithBuilder<T> With<TValue>(Expression<Func<T, TValue>> selector, TValue value)
         {
-            var propertyInfo = GetPropertyInfo(selector);
+            var propertyInfo = GetPropertyName(selector);
 
             _properties.Add((propertyInfo.Name, value));
 
             return this;
         }
 
-        private static PropertyInfo GetPropertyInfo<TValue>(Expression<Func<T, TValue>> expression)
+        private static PropertyInfo GetPropertyName<TValue>(Expression<Func<T, TValue>> expression)
         {
             switch (expression.Body)
             {
