@@ -12,7 +12,7 @@ namespace TypeMerger
             return new WithBuilder<T>(@this);
         }
 
-        public static T With<T>(T @this, params (string PropertyName, object Value)[] properties)
+        internal static T With<T>(T @this, params (string PropertyName, object Value)[] properties)
         {
             if (@this == null) throw new ArgumentNullException(nameof(@this));
 

@@ -48,15 +48,11 @@ namespace TypeMerger.Tests
                 Age = sourceAge
             };
             
-            var withProperties = new List<(string propertyName, object propertyValue)>
-            {
-                (nameof(SourceWithSetters.Id), withId),
-                (nameof(SourceWithSetters.Name), withName),
-                (nameof(SourceWithSetters.Age), withAge)
-            }.ToArray();
-
             // Act
-            var result = TypeWither.With(source, withProperties);
+            SourceWithSetters result = TypeWither.GetBuilder(source)
+                .With(_ => _.Id, withId)
+                .With(_ => _.Name, withName)
+                .With(_ => _.Age, withAge);
 
             // Assert
             result.Age.Should().Be(expectedAge);
@@ -81,7 +77,10 @@ namespace TypeMerger.Tests
             }.ToArray();
 
             // Act
-            var result = TypeWither.With(source, withProperties);
+            SourceWithConstructor result = TypeWither.GetBuilder(source)
+                .With(_ => _.Id, withId)
+                .With(_ => _.Name, withName)
+                .With(_ => _.Age, withAge);
 
             // Assert
             result.Age.Should().Be(expectedAge);
