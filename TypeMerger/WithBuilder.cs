@@ -11,7 +11,7 @@ namespace TypeMerger
         private readonly T _instance;
         private readonly HashSet<(string PropertyName, object Value)> _properties;
 
-        public WithBuilder(T instance)
+        internal WithBuilder(T instance)
         {
             _instance = instance;
             _properties = new HashSet<(string PropertyName, object Value)>();
