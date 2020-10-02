@@ -19,6 +19,8 @@ namespace TypeMerger
 
         public WithBuilder<T> With<TValue>(Expression<Func<T, TValue>> selector, TValue value)
         {
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            
             var propertyInfo = GetPropertyName(selector);
 
             _properties.Add((propertyInfo.Name, value));

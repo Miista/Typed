@@ -9,6 +9,8 @@ namespace TypeMerger
     {
         public static WithBuilder<T> GetBuilder<T>(T instance)
         {
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+            
             return new WithBuilder<T>(instance);
         }
 
