@@ -14,7 +14,7 @@ namespace TypeMerger
             return new WithBuilder<T>(instance);
         }
 
-        internal static T With<T>(T instance, params (string PropertyName, object Value)[] properties)
+        internal static T With<T>(T instance, params PropertyValue[] properties)
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
 

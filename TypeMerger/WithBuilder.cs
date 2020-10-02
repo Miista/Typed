@@ -9,12 +9,12 @@ namespace TypeMerger
     public struct WithBuilder<T>
     {
         private readonly T _instance;
-        private readonly HashSet<(string PropertyName, object Value)> _properties;
+        private readonly HashSet<PropertyValue> _properties;
 
         internal WithBuilder(T instance)
         {
             _instance = instance;
-            _properties = new HashSet<(string PropertyName, object Value)>();
+            _properties = new HashSet<PropertyValue>();
         }
 
         public WithBuilder<T> With<TValue>(Expression<Func<T, TValue>> selector, TValue value)
@@ -23,7 +23,8 @@ namespace TypeMerger
             
             var propertyInfo = GetPropertyName(selector);
 
-            _properties.Add((propertyInfo.Name, value));
+            var propertyValue = new PropertyValue(propertyInfo.Name, value);
+            _properties.Add(propertyValue);
 
             return this;
         }
