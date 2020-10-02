@@ -27,12 +27,12 @@ namespace TypeMerger
                 : WithByConstructor(instance, propertyDictionary, constructorInfo);
         }
 
-        private static TObject WithByConstructor<TObject>(
-            TObject instance,
+        private static TInstance WithByConstructor<TInstance>(
+            TInstance instance,
             IReadOnlyDictionary<string, object> properties,
             ConstructorInfo constructorInfo)
         {
-            var existingProperties = GetProperties<TObject>();
+            var existingProperties = GetProperties<TInstance>();
 
             var parameters = new List<object>();
 
@@ -48,20 +48,20 @@ namespace TypeMerger
                 parameters.Add(value);
             }
 
-            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TObject
-                ? (TObject) constructorInfo.Invoke(parameters.ToArray())
-                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TObject)}");
+            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance
+                ? (TInstance) constructorInfo.Invoke(parameters.ToArray())
+                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
 
             return constructedInstance;
         }
 
-        private static TObject WithByProperty<TObject>(
-            TObject left, 
+        private static TInstance WithByProperty<TInstance>(
+            TInstance instance, 
             IReadOnlyDictionary<string, object> properties)
         {
-            var existingProperties = GetProperties<TObject>();
+            var existingProperties = GetProperties<TInstance>();
 
-            var constructedInstance = Activator.CreateInstance<TObject>();
+            var constructedInstance = Activator.CreateInstance<TInstance>();
             
             foreach (var parameter in existingProperties)
             {
@@ -71,7 +71,7 @@ namespace TypeMerger
                 }
                 
                 existingProperties.TryGetValue(parameter.Key.ToLowerInvariant(), out var existingProperty);
-                var originalValue = existingProperty?.GetValue(left);
+                var originalValue = existingProperty?.GetValue(instance);
                 var hasNewValue = properties.TryGetValue(parameter.Key.ToLowerInvariant(), out var newValue);
 
                 var value = hasNewValue ? newValue : originalValue;
