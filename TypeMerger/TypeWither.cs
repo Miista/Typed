@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("TypeMerger.Tests")]
 
 namespace TypeMerger
 {
-    public static class TypeWither
+    internal static class TypeWither
     {
-        public static WithBuilder<T> GetBuilder<T>(T instance)
+        internal static WithBuilder<T> GetBuilder<T>(T instance)
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             
@@ -38,8 +41,8 @@ namespace TypeMerger
 
             foreach (var parameter in constructorInfo.GetParameters())
             {
-                existingProperties.TryGetValue(parameter.Name.ToLowerInvariant(), out var leftProperty);
-                var originalValue = leftProperty?.GetValue(instance);
+                existingProperties.TryGetValue(parameter.Name.ToLowerInvariant(), out var existingProperty);
+                var originalValue = existingProperty?.GetValue(instance);
                 
                 var hasNewValue = properties.TryGetValue(parameter.Name.ToLowerInvariant(), out var newValue);
 

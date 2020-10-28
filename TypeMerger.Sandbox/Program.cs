@@ -9,7 +9,7 @@ namespace TypeMerger.Sandbox
 
         public Test(string name, int age)
         {
-            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Name = name;
             Age = age;
         }
 
@@ -22,8 +22,7 @@ namespace TypeMerger.Sandbox
         {
             var instance = new Test("", 0);
             var updatedInstance = instance
-                .With(e => e.Name, "Hello, World!")
-                .With(e => e.Age, 10);
+                .With(e => e.Name, null);
 
             Print(updatedInstance);
         }
