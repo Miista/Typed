@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace TypeMerger
 {
-    public struct WithBuilder<T>
+    public readonly struct WithBuilder<T>
     {
         private readonly T _instance;
         private readonly HashSet<PropertyValue> _properties;
