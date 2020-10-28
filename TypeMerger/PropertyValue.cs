@@ -2,7 +2,7 @@
 
 namespace TypeMerger
 {
-    public struct PropertyValue
+    public readonly struct PropertyValue
     {
         public string PropertyName { get; }
         public object Value { get; }
