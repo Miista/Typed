@@ -32,7 +32,7 @@ namespace TypeMerger
             IReadOnlyDictionary<string, object> properties,
             ConstructorInfo constructorInfo)
         {
-            var existingProperties = GetProperties<TInstance>();
+            var existingProperties = TypeUtils.GetPropertyDictionary<TInstance>();
 
             var parameters = new List<object>();
 
@@ -59,7 +59,7 @@ namespace TypeMerger
             TInstance instance, 
             IReadOnlyDictionary<string, object> properties)
         {
-            var existingProperties = GetProperties<TInstance>();
+            var existingProperties = TypeUtils.GetPropertyDictionary<TInstance>();
 
             var constructedInstance = Activator.CreateInstance<TInstance>();
             
@@ -81,10 +81,5 @@ namespace TypeMerger
 
             return constructedInstance;
         }
-
-        private static Dictionary<string, PropertyInfo> GetProperties<T>() => 
-            typeof(T)
-                .GetProperties()
-                .ToDictionary(info => info.Name.ToLowerInvariant());
     }
 }

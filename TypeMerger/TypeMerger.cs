@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 namespace TypeMerger
@@ -26,8 +25,8 @@ namespace TypeMerger
             ConstructorInfo constructorInfo)
             where TDestination : class
         {
-            var leftProperties = GetProperties<TLeft>();
-            var rightProperties = GetProperties<TRight>();
+            var leftProperties = TypeUtils.GetPropertyDictionary<TLeft>();
+            var rightProperties = TypeUtils.GetPropertyDictionary<TRight>();
 
             var parameters = new List<object>();
 
@@ -54,9 +53,9 @@ namespace TypeMerger
             TRight right)
             where TDestination : class
         {
-            var leftProperties = GetProperties<TLeft>();
-            var rightProperties = GetProperties<TRight>();
-            var destinationProperties = GetProperties<TDestination>();
+            var leftProperties = TypeUtils.GetPropertyDictionary<TLeft>();
+            var rightProperties = TypeUtils.GetPropertyDictionary<TRight>();
+            var destinationProperties = TypeUtils.GetPropertyDictionary<TDestination>();
 
             var constructedInstance = Activator.CreateInstance<TDestination>();
             
@@ -76,7 +75,5 @@ namespace TypeMerger
 
             return constructedInstance;
         }
-
-        private static Dictionary<string, PropertyInfo> GetProperties<T>() => typeof(T).GetProperties().ToDictionary(info => info.Name.ToLowerInvariant());
     }
 }
