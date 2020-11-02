@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace TypeMerger
+namespace TypeMerger.Internal
 {
     internal readonly struct PropertyValue
     {

@@ -22,7 +22,7 @@ namespace TypeMerger.Tests
             };
             
             // Act
-            SourceWithSetters result = TypeWither.GetBuilder(source)
+            SourceWithSetters result = source
                 .With(_ => _.Id, withId)
                 .With(_ => _.Name, withName)
                 .With(_ => _.Age, withAge);
@@ -49,7 +49,7 @@ namespace TypeMerger.Tests
             };
             
             // Act
-            SourceWithSetters result = TypeWither.GetBuilder(source)
+            SourceWithSetters result = source
                 .With(_ => _.Id, withId)
                 .With(_ => _.Age, withAge)
                 .With(_ => _.Name, withName);
@@ -71,7 +71,7 @@ namespace TypeMerger.Tests
             var source = new SourceWithConstructor(sourceId, sourceName, sourceAge);
 
             // Act
-            SourceWithConstructor result = TypeWither.GetBuilder(source)
+            SourceWithConstructor result = source
                 .With(_ => _.Id, withId)
                 .With(_ => _.Name, withName)
                 .With(_ => _.Age, withAge);
@@ -93,7 +93,7 @@ namespace TypeMerger.Tests
             var source = new SourceWithConstructor(sourceId, sourceName, sourceAge);
 
             // Act
-            SourceWithConstructor result = TypeWither.GetBuilder(source)
+            SourceWithConstructor result = source
                 .With(_ => _.Age, withAge)
                 .With(_ => _.Id, withId)
                 .With(_ => _.Name, withName);

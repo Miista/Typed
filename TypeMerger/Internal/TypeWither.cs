@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("TypeMerger.Tests")]
 
-namespace TypeMerger
+namespace TypeMerger.Internal
 {
     internal static class TypeWither
     {

@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Reflection;
 
-namespace TypeMerger
+namespace TypeMerger.Internal
 {
     internal static class ReflectionUtils
     {

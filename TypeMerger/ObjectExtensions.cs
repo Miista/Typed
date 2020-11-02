@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using TypeMerger.Internal;
 
 namespace TypeMerger
 {
