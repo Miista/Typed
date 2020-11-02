@@ -1,9 +1,5 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypeMerger", "TypeMerger\TypeMerger.csproj", "{069768C3-68AF-4751-BBD1-058E1C8B08E1}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TypeMerger.Tests", "TypeMerger.Tests\TypeMerger.Tests.csproj", "{00EE4AF7-BB99-48DE-A86E-35DDD4E42CC2}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typed.Sandbox", "Typed.Sandbox\Typed.Sandbox.csproj", "{5551E7D2-B132-446B-90CD-A6D81517A30B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Typed.With", "Typed.With\Typed.With.csproj", "{AE72584C-51DF-4A50-B321-15B158232D67}"
@@ -28,14 +24,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{069768C3-68AF-4751-BBD1-058E1C8B08E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{069768C3-68AF-4751-BBD1-058E1C8B08E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{069768C3-68AF-4751-BBD1-058E1C8B08E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{069768C3-68AF-4751-BBD1-058E1C8B08E1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{00EE4AF7-BB99-48DE-A86E-35DDD4E42CC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{00EE4AF7-BB99-48DE-A86E-35DDD4E42CC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{00EE4AF7-BB99-48DE-A86E-35DDD4E42CC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{00EE4AF7-BB99-48DE-A86E-35DDD4E42CC2}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5551E7D2-B132-446B-90CD-A6D81517A30B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5551E7D2-B132-446B-90CD-A6D81517A30B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5551E7D2-B132-446B-90CD-A6D81517A30B}.Release|Any CPU.ActiveCfg = Release|Any CPU
