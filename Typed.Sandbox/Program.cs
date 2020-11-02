@@ -1,4 +1,5 @@
 ﻿using System;
+using TypeWither;
 
 namespace TypeMerger.Sandbox
 {
@@ -25,6 +26,10 @@ namespace TypeMerger.Sandbox
                 .With(e => e.Name, null);
 
             Print(updatedInstance);
+            
+            var newInstance = new Test("First Name", 10);
+            var mergedInstance = TypeMerger.Merge<Test, Test, Test>(instance, newInstance);
+            Print(mergedInstance);
         }
 
         private static void Print(Test test) => Console.WriteLine(test);

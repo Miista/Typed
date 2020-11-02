@@ -3,10 +3,12 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <RootNamespace>TypeMerger.Sandbox</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TypeMerger\TypeMerger.csproj" />
+    <ProjectReference Include="..\Typed.Merge\Typed.Merge.csproj" />
+    <ProjectReference Include="..\Typed.With\Typed.With.csproj" />
   </ItemGroup>
 
 </Project>
