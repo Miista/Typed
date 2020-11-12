@@ -10,7 +10,12 @@ Task("Build")
 Task("Test")
   .Does(() =>
 {
-  DotNetCoreTest("./src/Typed.sln");
+  var settings = new DotNetCoreTestSettings
+  {
+    Verbosity = DotNetCoreVerbosity.Minimal
+  };
+
+  DotNetCoreTest("./src/Typed.sln", settings);
 })
 ;
 
