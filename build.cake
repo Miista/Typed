@@ -1,9 +1,17 @@
 var target = Argument("target", "Default");
 
+var solutionFile = "./src/Typed.sln";
+
 Task("Build")
   .Does(() =>
 {
-  DotNetCoreBuild("./src/Typed.sln");
+  var buildSettings = new DotNetCoreBuildSettings
+  {
+    Configuration = "Release",
+    Verbosity = DotNetCoreVerbosity.Minimal
+  };
+  
+  DotNetCoreBuild(solutionFile, buildSettings);
 
 });
 
@@ -15,7 +23,7 @@ Task("Test")
     Verbosity = DotNetCoreVerbosity.Minimal
   };
 
-  DotNetCoreTest("./src/Typed.sln", settings);
+  DotNetCoreTest(solutionFile, settings);
 })
 ;
 
@@ -49,6 +57,6 @@ public void Pack(string projectName, string[] targets)
     IncludeSymbols = true,
     OutputDirectory = "./nuget"
   };
+  
   DotNetCorePack($"./src/{projectName}/{projectName}.csproj", settings);
-
 }
