@@ -10,12 +10,14 @@ namespace TypeWither
         public static IWithBuilder<T> Create<T>(Dictionary<string, object> properties)
         {
             if (properties == null) throw new ArgumentNullException(nameof(properties));
+
+            var satisfiedConstructor = ReflectionUtils.GetSatisfiedConstructor<T>(properties);
+            if (satisfiedConstructor != null) return new ConstructorWithBuilder<T>(satisfiedConstructor);
+
+            var partiallySatisfiedConstructor = ReflectionUtils.GetSuitableConstructor<T>();
+            if (partiallySatisfiedConstructor != null) return new MixedConstructorAndPropertyWithBuilder<T>(partiallySatisfiedConstructor);
             
-            var constructorInfo = ReflectionUtils.GetSuitableConstructor<T>();
-            
-            if (constructorInfo == null) return new PropertyWithBuilder<T>();
-            if (constructorInfo.CanSatisfy(properties)) return new ConstructorWithBuilder<T>(constructorInfo);
-            return new MixedConstructorAndPropertyWithBuilder<T>(constructorInfo);
+            return new PropertyWithBuilder<T>();
         }
     }
 }

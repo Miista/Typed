@@ -21,9 +21,10 @@ namespace TypeMerger.Sandbox
     {
         public class Person
         {
-            public Person(string text)
+            public Person(string text, string name)
             {
                 Text = text;
+                Name = name;
             }
 
             public string Name { get; set; }
@@ -35,7 +36,7 @@ namespace TypeMerger.Sandbox
         
         private static void Main(string[] args)
         {
-            var person = new Person("Lol");
+            var person = new Person("Lol", "Test");
             Person me = person
                 .With(p => p.Text, "Hey")
                 .With(p => p.Name, "Søren Guldmund")
