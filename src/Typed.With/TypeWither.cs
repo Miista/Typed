@@ -25,7 +25,56 @@ namespace TypeWither
             
             return constructorInfo == null
                 ? WithByProperty(instance, propertyDictionary)
-                : WithByConstructor(instance, propertyDictionary, constructorInfo);
+                : constructorInfo.CanSatisfy(propertyDictionary)
+                    ? WithByConstructor(instance, propertyDictionary, constructorInfo)
+                    : WithByConstructorThenByProperty(instance, propertyDictionary, constructorInfo);
+        }
+
+        private static TInstance WithByConstructorThenByProperty<TInstance>(
+            TInstance instance,
+            IReadOnlyDictionary<string, object> properties,
+            ConstructorInfo constructorInfo)
+        {
+            var constructedInstance = WithByConstructor(instance, properties, constructorInfo);
+            
+            var constructorParameters = constructorInfo
+                .GetParameters()
+                .Select(info => new KeyValuePair<string, object>(info.Name.ToLowerInvariant(), null));
+            var remainingProperties = properties
+                .Except(constructorParameters)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            var enrichedInstance = EnrichByProperty(constructedInstance, remainingProperties);
+
+            return enrichedInstance;
+        }
+        
+        private static TInstance EnrichByProperty<TInstance>(
+            TInstance instance,
+            IReadOnlyDictionary<string, object> properties
+            )
+        {
+            var existingProperties = TypeUtils.GetPropertyDictionary<TInstance>();
+
+            foreach (var property in properties)
+            {
+                var matchingProperty = existingProperties.FirstOrDefault(p => p.Key.ToLowerInvariant() == property.Key).Value;
+
+                if (!matchingProperty.CanWrite)
+                {
+                    throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
+                }
+                
+                existingProperties.TryGetValue(property.Key.ToLowerInvariant(), out var existingProperty);
+                var originalValue = existingProperty?.GetValue(instance);
+                var hasNewValue = properties.TryGetValue(property.Key.ToLowerInvariant(), out var newValue);
+
+                var value = hasNewValue ? newValue : originalValue;
+
+                matchingProperty.SetValue(instance, value);
+            }
+
+            return instance;
         }
 
         private static TInstance WithByConstructor<TInstance>(

@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>TypeWither</RootNamespace>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,7 +16,7 @@
     <Copyright>2020</Copyright>
     <Title>Typed.With: Providing with-functionality to any type</Title>
     <Description>Typed.With provides with-functionality for any type.</Description>
-    <PackageDescription/>
+    <PackageDescription />
     <PackageTags>Typed;With;Fluent;Functional;Immutable</PackageTags>
   </PropertyGroup>
   
