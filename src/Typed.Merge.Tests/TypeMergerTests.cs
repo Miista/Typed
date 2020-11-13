@@ -4,7 +4,7 @@ using AutoFixture;
 using FluentAssertions;
 using Xunit;
 
-namespace TypeMerger.Tests
+namespace Typed.Merge.Tests
 {
     internal class SourceWithConstructor {
         public string Id { get; }

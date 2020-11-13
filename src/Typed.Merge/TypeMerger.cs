@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Type.Core;
 
-namespace TypeMerger
+namespace Typed.Merge
 {
     public static class TypeMerger
     {
