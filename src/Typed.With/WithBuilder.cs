@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace TypeWither
+namespace Typed.With
 {
     public readonly struct WithBuilder<T>
     {

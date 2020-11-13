@@ -1,5 +1,5 @@
 ﻿using System;
-using TypeWither;
+using Typed.With;
 
 namespace TypeMerger.Sandbox
 {

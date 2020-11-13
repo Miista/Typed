@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Type.Core;
-using TypeWither.Builders;
+using Typed.With.Builders;
 
-namespace TypeWither
+namespace Typed.With
 {
     internal static class WithBuilderFactory
     {

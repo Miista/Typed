@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Type.Core;
 
-namespace TypeWither.Builders
+namespace Typed.With.Builders
 {
     internal class ConstructorWithBuilder<T> : IWithBuilder<T>
     {

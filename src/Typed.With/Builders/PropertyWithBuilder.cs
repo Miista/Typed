@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Type.Core;
 
-namespace TypeWither.Builders
+namespace Typed.With.Builders
 {
     internal class PropertyWithBuilder<T> : IWithBuilder<T>
     {

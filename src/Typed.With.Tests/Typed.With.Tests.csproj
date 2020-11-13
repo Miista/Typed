@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <RootNamespace>TypeWither.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

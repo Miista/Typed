@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Type.Core;
 
-namespace TypeWither.Builders
+namespace Typed.With.Builders
 {
     /// <summary>
     /// An IWithBuilder which first constructs the instance using the constructor.

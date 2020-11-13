@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq.Expressions;
 
-namespace TypeWither
+namespace Typed.With
 {
     public static class ObjectExtensions
     {

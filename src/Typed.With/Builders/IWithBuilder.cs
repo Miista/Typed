@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace TypeWither.Builders
+namespace Typed.With.Builders
 {
     internal interface IWithBuilder<T>
     {

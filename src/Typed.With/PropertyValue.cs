@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 
-namespace TypeWither
+namespace Typed.With
 {
     internal readonly struct PropertyValue
     {

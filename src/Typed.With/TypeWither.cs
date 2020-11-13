@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace TypeWither
+namespace Typed.With
 {
     internal static class TypeWither
     {
