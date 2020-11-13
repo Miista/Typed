@@ -47,6 +47,8 @@ namespace TypeWither
             return TypeWither.With(_instance, _properties.ToArray());
         }
 
+        public override string ToString() => Build().ToString();
+
         public static implicit operator T(WithBuilder<T> builder) => builder.Build();
     }
 }
