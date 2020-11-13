@@ -21,16 +21,23 @@ namespace TypeMerger.Sandbox
     {
         public class Person
         {
+            public Person(string text)
+            {
+                Text = text;
+            }
+
             public string Name { get; set; }
             public int Age { get; set; }
+            public string Text { get; }
 
-            public override string ToString() => $"Name: {Name}; Age: {Age}";
+            public override string ToString() => $"Text: {Text}; Name: {Name}; Age: {Age}";
         }
         
         private static void Main(string[] args)
         {
-            var person = new Person();
+            var person = new Person("Lol");
             Person me = person
+                .With(p => p.Text, "Hey")
                 .With(p => p.Name, "Søren Guldmund")
                 .With(p => p.Age, 30);
             Console.WriteLine(me); // Writes Name: Søren Guldmund; Age: 30

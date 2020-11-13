@@ -20,8 +20,8 @@ namespace TypeWither.Tests
     }
 
     internal class SourceWithMixedConstructorAndSetters {
-        public string Id { get; set; }
-        public string Name { get; set; }
+        public string Id { get; }
+        public string Name { get; }
         public int? Age { get; set; }
 
         public SourceWithMixedConstructorAndSetters(string id, string name) => (Id, Name) = (id, name);
