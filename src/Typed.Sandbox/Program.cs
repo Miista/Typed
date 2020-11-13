@@ -1,7 +1,7 @@
 ﻿using System;
 using Typed.With;
 
-namespace TypeMerger.Sandbox
+namespace Typed.Sandbox
 {
     class Test
     {
