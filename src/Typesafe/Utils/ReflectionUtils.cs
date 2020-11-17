@@ -7,6 +7,14 @@ namespace Typesafe.Utils
 {
     internal static class ReflectionUtils
     {
+        public static ConstructorInfo GetSuitableConstructor<T>()
+        {
+            return typeof(T)
+                .GetConstructors()
+                .OrderByDescending(info => info.GetParameters().Length)
+                .FirstOrDefault(info => info.GetParameters().Length > 0);
+        }
+
         public static ConstructorInfo GetPartiallySatisfiedConstructor<T>()
         {
             return typeof(T)
