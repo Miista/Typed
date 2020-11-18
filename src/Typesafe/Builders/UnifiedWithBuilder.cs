@@ -20,8 +20,6 @@ namespace Typesafe.Builders
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
-            properties = properties.Select(LowercaseKey).ToDictionary(pair => pair.Key, pair => pair.Value);
-
             // 1. Construct instance of T (and set properties via constructor)
             var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo);
             
@@ -141,22 +139,6 @@ namespace Typesafe.Builders
                 : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
 
             return (constructedInstance, remainingProperties);
-        }
-
-        private static KeyValuePair<string, TValue> LowercaseKey<TValue>(KeyValuePair<string, TValue> pair)
-        {
-            var lowercasedKey = Lowercase(pair.Key);
-
-            return new KeyValuePair<string, TValue>(lowercasedKey, pair.Value);
-
-            string Lowercase(string s)
-            {
-                var firstLetter = s[0];
-                var firstLetterInUppercase = char.ToLowerInvariant(firstLetter);
-                var remainingString = s.Substring(1);
-                    
-                return firstLetterInUppercase + remainingString;
-            }
         }
     }
 }

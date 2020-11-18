@@ -16,7 +16,7 @@ namespace Typesafe.With
             var propertyName = propertyPicker.GetProperty();
             var properties = new Dictionary<string, object>
             {
-                {propertyName.Name, propertyValue}
+                {propertyName, propertyValue}
             };
 
             return WithBuilderFactory.Create<T>().Construct(instance, properties);

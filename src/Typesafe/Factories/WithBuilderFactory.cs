@@ -8,7 +8,7 @@ namespace Typesafe.Factories
     {
         public static IWithBuilder<T> Create<T>()
         {
-            var constructor = TypeUtils.GetSuitableConstructor<T>() ?? throw new InvalidOperationException($"Could not find any constructor for type {typeof(T)}.");
+            var constructor = TypeUtils.GetSuitableConstructor<T>();
             
             return new UnifiedWithBuilder<T>(constructor);
         }

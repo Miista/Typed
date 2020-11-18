@@ -13,7 +13,7 @@ namespace Typesafe.Merge
             if (left == null) throw new ArgumentNullException(nameof(left));
             if (right == null) throw new ArgumentNullException(nameof(right));
 
-            var constructor = TypeUtils.GetSuitableConstructor<TDestination>() ?? throw new InvalidOperationException($"Could not find any constructor for type {typeof(TDestination)}.");
+            var constructor = TypeUtils.GetSuitableConstructor<TDestination>();
             
             return MergeByConstructor<TDestination, TLeft, TRight>(left, right, constructor);
         }
