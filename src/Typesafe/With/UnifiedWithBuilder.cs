@@ -4,9 +4,9 @@ using System.Linq;
 using System.Reflection;
 using Typesafe.Utils;
 
-namespace Typesafe.Builders
+namespace Typesafe.With
 {
-    public class UnifiedWithBuilder<T> : IWithBuilder<T>
+    public class UnifiedWithBuilder<T>
     {
         private readonly ConstructorInfo _constructorInfo;
 

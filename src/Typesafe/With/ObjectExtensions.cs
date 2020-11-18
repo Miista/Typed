@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using Typesafe.Factories;
 using Typesafe.Utils;
 
 namespace Typesafe.With
@@ -19,7 +18,10 @@ namespace Typesafe.With
                 {propertyName, propertyValue}
             };
 
-            return WithBuilderFactory.Create<T>().Construct(instance, properties);
+            var constructor = TypeUtils.GetSuitableConstructor<T>();
+            var builder = new UnifiedWithBuilder<T>(constructor);
+            
+            return builder.Construct(instance, properties);
         }
     }
 }
