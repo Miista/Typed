@@ -8,64 +8,86 @@ namespace Typesafe.Merge
 {
     public static class ObjectExtensions
     {
+        private class ValueResolver<TLeft, TRight>
+        {
+            private readonly TLeft _leftInstance;
+            private readonly TRight _rightInstance;
+            private readonly IReadOnlyDictionary<string, PropertyInfo> _leftProperties;
+            private readonly IReadOnlyDictionary<string, PropertyInfo> _rightProperties;
+
+            public ValueResolver(TLeft leftInstance, TRight rightInstance)
+            {
+                _leftInstance = leftInstance;
+                _rightInstance = rightInstance;
+                _leftProperties = GetPropertyDictionary<TLeft>();
+                _rightProperties = GetPropertyDictionary<TRight>();
+            }
+
+            public object Resolve(string parameterName)
+            {
+                if (parameterName == null) throw new ArgumentNullException(nameof(parameterName));
+                
+                _leftProperties.TryGetValue(parameterName, out var leftProperty);
+                var leftValue = leftProperty?.GetValue(_leftInstance);
+                
+                _rightProperties.TryGetValue(parameterName, out var rightProperty);
+                var rightValue = rightProperty?.GetValue(_rightInstance);
+
+                var value = rightValue ?? leftValue;
+
+                return value;
+            }
+        }
+        
         public static TDestination Merge<TDestination, TLeft, TRight>(TLeft left, TRight right)
             where TDestination : class
         {
             if (left == null) throw new ArgumentNullException(nameof(left));
             if (right == null) throw new ArgumentNullException(nameof(right));
 
-            var constructorInfo = ReflectionUtils.GetSuitableConstructor<TDestination>();
-            if (constructorInfo != null)
-                return MergeByConstructor<TDestination, TLeft, TRight>(left, right, constructorInfo);
-
-            var defaultConstructorInfo = ReflectionUtils.GetDefaultConstructor<TDestination>();
-            if (defaultConstructorInfo != null)
-                return MergeByConstructor<TDestination, TLeft, TRight>(left, right, defaultConstructorInfo);
-
-            return MergeByProperty<TDestination, TLeft, TRight>(left, right);
+            var constructor = GetSuitableConstructor<TDestination>() ?? throw new InvalidOperationException($"Could not find any constructor for type {typeof(TDestination)}.");
+            
+            return MergeByConstructor<TDestination, TLeft, TRight>(left, right, constructor);
         }
 
+        private static ConstructorInfo GetSuitableConstructor<T>()
+        {
+            return typeof(T)
+                .GetConstructors()
+                .OrderByDescending(info => info.GetParameters().Length)
+                .FirstOrDefault();
+        }
+        
         private static TDestination MergeByConstructor<TDestination, TLeft, TRight>(
             TLeft left,
             TRight right,
             ConstructorInfo constructorInfo)
             where TDestination : class
         {
-            var leftProperties = GetPropertyDictionary<TLeft>();
-            var rightProperties = GetPropertyDictionary<TRight>();
+            var valueResolver = new ValueResolver<TLeft, TRight>(left, right);
 
             var alreadySetProperties = new List<string>();
-            var parameters = new List<object>();
+            var constructorParameters = new List<object>();
 
+            // 1. Create new instance
             foreach (var parameter in constructorInfo.GetParameters())
             {
-                leftProperties.TryGetValue(parameter.Name, out var leftProperty);
-                var leftValue = leftProperty?.GetValue(left);
+                var value = valueResolver.Resolve(parameter.Name);
                 
-                rightProperties.TryGetValue(parameter.Name, out var rightProperty);
-                var rightValue = rightProperty?.GetValue(right);
-
-                var value = rightValue ?? leftValue;
-                
-                parameters.Add(value);
+                constructorParameters.Add(value);
                 alreadySetProperties.Add(parameter.Name);
             }
 
-            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) as TDestination;
-
-            var destinationProperties = GetPropertyDictionary<TDestination>();
+            var constructedInstance = constructorInfo.Invoke(constructorParameters.ToArray()) as TDestination
+                                      ?? throw new InvalidOperationException(
+                                          $"Cannot construct instance of type {typeof(TDestination)}");
             
-            foreach (var pair in destinationProperties)
+            // 2. Set any properties on the destination that was not set
+            foreach (var pair in GetPropertyDictionary<TDestination>())
             {
                 if (alreadySetProperties.Contains(pair.Key)) continue;
                 
-                leftProperties.TryGetValue(pair.Key, out var leftProperty);
-                var leftValue = leftProperty?.GetValue(left);
-                
-                rightProperties.TryGetValue(pair.Key, out var rightProperty);
-                var rightValue = rightProperty?.GetValue(right);
-
-                var value = rightValue ?? leftValue;
+                var value = valueResolver.Resolve(pair.Key);
                 
                 pair.Value?.SetValue(constructedInstance, value);
             }
@@ -73,7 +95,7 @@ namespace Typesafe.Merge
             return constructedInstance;
         }
 
-        private static IDictionary<string, PropertyInfo> GetPropertyDictionary<TInstance>()
+        private static IReadOnlyDictionary<string, PropertyInfo> GetPropertyDictionary<TInstance>()
             => TypeUtils.GetPropertyDictionary<TInstance>().Select(LowercaseKey).ToDictionary(pair => pair.Key, pair => pair.Value);
 
         private static KeyValuePair<string, TValue> LowercaseKey<TValue>(KeyValuePair<string, TValue> pair)
@@ -90,53 +112,6 @@ namespace Typesafe.Merge
                     
                 return firstLetterInUppercase + remainingString;
             }
-        }
-        
-        private static TDestination MergeByProperty<TDestination, TLeft, TRight>(
-            TLeft left, 
-            TRight right)
-            where TDestination : class
-        {
-            var leftProperties = GetPropertyDictionary<TLeft>();
-            var rightProperties = GetPropertyDictionary<TRight>();
-            var destinationProperties = GetPropertyDictionary<TDestination>();
-
-            var constructedInstance = Activator.CreateInstance<TDestination>();
-
-            var properties = new List<string>();
-
-            foreach (var parameter in destinationProperties)
-            {
-                leftProperties.TryGetValue(parameter.Key.ToLowerInvariant(), out var leftProperty);
-                var leftValue = leftProperty?.GetValue(left);
-                
-                rightProperties.TryGetValue(parameter.Key.ToLowerInvariant(), out var rightProperty);
-                var rightValue = rightProperty?.GetValue(right);
-
-                var value = rightValue ?? leftValue;
-                
-                var setMethod = parameter.Value.GetSetMethod();
-                setMethod.Invoke(constructedInstance, new[] {value});
-                
-                properties.Add(parameter.Key);
-            }
-
-            foreach (var pair in leftProperties)
-            {
-                if (properties.Contains(pair.Key)) continue;
-                
-                leftProperties.TryGetValue(pair.Key, out var leftProperty);
-                var leftValue = leftProperty?.GetValue(left);
-                
-                rightProperties.TryGetValue(pair.Key, out var rightProperty);
-                var rightValue = rightProperty?.GetValue(right);
-
-                var value = rightValue ?? leftValue;
-                
-                rightProperty?.SetValue(constructedInstance, value);
-            }
-            
-            return constructedInstance;
         }
     }
 }
