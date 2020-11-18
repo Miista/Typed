@@ -26,19 +26,64 @@ namespace Typesafe.Builders
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (properties == null) throw new ArgumentNullException(nameof(properties));
             
+            // Set properties via constructor
             var constructedInstance = base.Construct(instance, properties);
-            var remainingProperties = GetParametersNotInConstructor(_constructorInfo, properties);
             
-            return EnrichByProperty(constructedInstance, remainingProperties);
+            // Set properties via property setters
+            var remainingProperties = GetParametersNotInConstructor(properties);
+            var enrichedInstance = EnrichByProperty(constructedInstance, remainingProperties);
+
+            // Copy remaining properties from source to destination
+            var publicProperties = GetPropertiesToBeSet(properties);
+            var copyProperties = publicProperties.Values;
+            var enrichedInstanceWithCopiedProperties = CopyProperties(instance, enrichedInstance, copyProperties);
+
+            return enrichedInstanceWithCopiedProperties;
         }
 
-        private static IReadOnlyDictionary<string, object> GetParametersNotInConstructor(
-            ConstructorInfo constructorInfo,
+        private static T CopyProperties(T source, T destination, IEnumerable<PropertyInfo> properties)
+        {
+            foreach (var kvp in properties)
+            {
+                var value = kvp.GetValue(source);
+                kvp.SetValue(destination, value);
+            }
+
+            return destination;
+        }
+
+        private IReadOnlyDictionary<string, PropertyInfo> GetPropertiesToBeSet(
             IReadOnlyDictionary<string, object> properties)
         {
-            var constructorParameters = constructorInfo
-                .GetParameters()
-                .Select(parameterInfo => parameterInfo.Name)
+            var publicProperties = TypeUtils.GetPropertyDictionary<T>();
+            foreach (var kvp in properties)
+            {
+                publicProperties.Remove(kvp.Key);
+            }
+            
+            foreach (var constructorParameter in ConstructorParameters)
+            {
+                publicProperties.Remove(constructorParameter);
+            }
+
+            return publicProperties;
+        }
+
+        private IEnumerable<string> ConstructorParameters
+        {
+            get
+            {
+                return _constructorInfo
+                    .GetParameters()
+                    .Select(parameterInfo => parameterInfo.Name)
+                    .Select(UppercaseFirstLetter)
+                    .ToList();
+            }
+        }
+
+        private IReadOnlyDictionary<string, object> GetParametersNotInConstructor(IReadOnlyDictionary<string, object> properties)
+        {
+            var constructorParameters = ConstructorParameters
                 .ToLookup(parameterName => parameterName);
 
             var propertiesCoveredByConstructor = properties
@@ -47,6 +92,15 @@ namespace Typesafe.Builders
             return properties
                 .Except(propertiesCoveredByConstructor)
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+        
+        private static string UppercaseFirstLetter(string s)
+        {
+            var firstLetter = s[0];
+            var firstLetterInUppercase = char.ToUpperInvariant(firstLetter);
+            var remainingString = s.Substring(1);
+            
+            return firstLetterInUppercase + remainingString;
         }
         
         private static TInstance EnrichByProperty<TInstance>(

@@ -283,7 +283,7 @@ namespace Typesafe.With.Tests
                 yield return new object[]{"1",  "1",  1,    "2",  null, null, "2",  null, null};
                 yield return new object[]{"1",  "1",  1,    "2",  null, 2,    "2",  null, 2};
                 yield return new object[]{"1",  "1",  1,    "2",  "2",  null, "2",  "2",  null};
-                    yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
+                yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
                 yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
                 yield return new object[]{null, null, 1,    "2",  "2",  2,    "2",  "2",  2};
                 yield return new object[]{null, "1", null,  "2",  "2",  2,    "2",  "2",  2};

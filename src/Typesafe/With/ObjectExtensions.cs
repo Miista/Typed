@@ -19,7 +19,7 @@ namespace Typesafe.With
                 {propertyName.Name, propertyValue}
             };
 
-            return WithBuilderFactory.Create<T>(properties).Construct(instance, properties);
+            return WithBuilderFactory.Create<T>().Construct(instance, properties);
         }
         
         private static PropertyInfo GetPropertyName<T, TValue>(Expression<Func<T, TValue>> expression)

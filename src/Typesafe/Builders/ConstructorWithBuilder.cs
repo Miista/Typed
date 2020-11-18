@@ -44,9 +44,7 @@ namespace Typesafe.Builders
             {
                 existingProperties.TryGetValue(UppercaseFirstLetter(parameter.Name), out var existingProperty);
                 var originalValue = existingProperty?.GetValue(instance);
-                
                 var hasNewValue = newProperties.TryGetValue(UppercaseFirstLetter(parameter.Name), out var newValue);
-
                 var value = hasNewValue ? newValue : originalValue;
                 
                 parameters.Add(value);

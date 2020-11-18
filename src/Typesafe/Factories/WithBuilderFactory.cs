@@ -1,23 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Typesafe.Builders;
-using Typesafe.Utils;
 
 namespace Typesafe.Factories
 {
     internal static class WithBuilderFactory
     {
-        public static IWithBuilder<T> Create<T>(Dictionary<string, object> properties)
+        public static IWithBuilder<T> Create<T>()
         {
-            if (properties == null) throw new ArgumentNullException(nameof(properties));
-
-            var satisfiedConstructor = ReflectionUtils.GetSatisfiedConstructor<T>(properties);
-            if (satisfiedConstructor != null) return new ConstructorWithBuilder<T>(satisfiedConstructor);
-
-            var partiallySatisfiedConstructor = ReflectionUtils.GetPartiallySatisfiedConstructor<T>();
-            if (partiallySatisfiedConstructor != null) return new MixedConstructorAndPropertyWithBuilder<T>(partiallySatisfiedConstructor);
+            var constructor = GetSuitableConstructor<T>() ?? throw new InvalidOperationException($"Could not find any constructor for type {typeof(T)}.");
             
-            return new PropertyWithBuilder<T>();
+            return new MixedConstructorAndPropertyWithBuilder<T>(constructor);
+        }
+
+        private static ConstructorInfo GetSuitableConstructor<T>()
+        {
+            return typeof(T)
+                .GetConstructors()
+                .OrderByDescending(info => info.GetParameters().Length)
+                .FirstOrDefault();
         }
     }
 }
