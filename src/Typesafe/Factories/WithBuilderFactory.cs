@@ -11,7 +11,8 @@ namespace Typesafe.Factories
         {
             var constructor = GetSuitableConstructor<T>() ?? throw new InvalidOperationException($"Could not find any constructor for type {typeof(T)}.");
             
-            return new MixedConstructorAndPropertyWithBuilder<T>(constructor);
+            return new UnifiedWithBuilder<T>(constructor);
+            // return new MixedConstructorAndPropertyWithBuilder<T>(constructor);
         }
 
         private static ConstructorInfo GetSuitableConstructor<T>()

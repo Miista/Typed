@@ -30,12 +30,12 @@ namespace Typesafe.Builders
             var constructedInstance = base.Construct(instance, properties);
             
             // Set properties via property setters
-            var remainingProperties = GetParametersNotInConstructor(properties);
-            var enrichedInstance = EnrichByProperty(constructedInstance, remainingProperties);
+            var remainingProperties = GetNonConstructorProperties(properties);
+            var enrichedInstance = PropertySetter.EnrichByProperty(constructedInstance, remainingProperties);
 
             // Copy remaining properties from source to destination
-            var publicProperties = GetPropertiesToBeSet(properties);
-            var copyProperties = publicProperties.Values;
+            var publicProperties = GetCopyProperties(properties);
+            var copyProperties = publicProperties;
             var enrichedInstanceWithCopiedProperties = CopyProperties(instance, enrichedInstance, copyProperties);
 
             return enrichedInstanceWithCopiedProperties;
@@ -52,8 +52,7 @@ namespace Typesafe.Builders
             return destination;
         }
 
-        private IReadOnlyDictionary<string, PropertyInfo> GetPropertiesToBeSet(
-            IReadOnlyDictionary<string, object> properties)
+        private IEnumerable<PropertyInfo> GetCopyProperties(IReadOnlyDictionary<string, object> properties)
         {
             var publicProperties = TypeUtils.GetPropertyDictionary<T>();
             foreach (var kvp in properties)
@@ -66,7 +65,7 @@ namespace Typesafe.Builders
                 publicProperties.Remove(constructorParameter);
             }
 
-            return publicProperties;
+            return publicProperties.Values;
         }
 
         private IEnumerable<string> ConstructorParameters
@@ -78,10 +77,19 @@ namespace Typesafe.Builders
                     .Select(parameterInfo => parameterInfo.Name)
                     .Select(UppercaseFirstLetter)
                     .ToList();
+                
+                string UppercaseFirstLetter(string s)
+                {
+                    var firstLetter = s[0];
+                    var firstLetterInUppercase = char.ToUpperInvariant(firstLetter);
+                    var remainingString = s.Substring(1);
+                    
+                    return firstLetterInUppercase + remainingString;
+                }
             }
         }
 
-        private IReadOnlyDictionary<string, object> GetParametersNotInConstructor(IReadOnlyDictionary<string, object> properties)
+        private IReadOnlyDictionary<string, object> GetNonConstructorProperties(IReadOnlyDictionary<string, object> properties)
         {
             var constructorParameters = ConstructorParameters
                 .ToLookup(parameterName => parameterName);
@@ -92,39 +100,6 @@ namespace Typesafe.Builders
             return properties
                 .Except(propertiesCoveredByConstructor)
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        }
-        
-        private static string UppercaseFirstLetter(string s)
-        {
-            var firstLetter = s[0];
-            var firstLetterInUppercase = char.ToUpperInvariant(firstLetter);
-            var remainingString = s.Substring(1);
-            
-            return firstLetterInUppercase + remainingString;
-        }
-        
-        private static TInstance EnrichByProperty<TInstance>(
-            TInstance instance,
-            IReadOnlyDictionary<string, object> newProperties)
-        {
-            var existingProperties = TypeUtils.GetPropertyDictionary<TInstance>();
-
-            foreach (var property in newProperties)
-            {
-                if (!existingProperties.TryGetValue(property.Key, out var existingProperty))
-                {
-                    throw new InvalidOperationException($"Cannot find property with name '{property.Key}'.");
-                }
-
-                if (!existingProperty.CanWrite)
-                {
-                    throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
-                }
-                
-                existingProperty.SetValue(instance, property.Value);
-            }
-
-            return instance;
         }
     }
 }

@@ -29,30 +29,44 @@ namespace Typesafe.Sandbox
     {
         static void Main(string[] args)
         {
-            // var person = new Person("Søren", 10);
-            // // Console.WriteLine(person);
-            // // Console.WriteLine(person.GetHashCode());
-            // //
-            // // var lasse = person
-            // //     .With(p => p.Name, "Lasse");
-            // // Console.WriteLine(lasse);
-            // // Console.WriteLine(lasse.GetHashCode());
-            // //
-            // // var youngerSoren = person.With(p => p.Age, 5);
-            // // Console.WriteLine(youngerSoren);
-            // // Console.WriteLine(youngerSoren.GetHashCode());
+            // {
+            //     var person1 = new Person("Søren", 10);
+            //     var person2 = new Person("Lasse", 11);
             //
-            // var withLastName = person
-            //     .With(p => p.Name, "Test")
-            //     .With(p => p.LastName, "Guldmund")
-            //     .With(p => p.Age, 5);
-            // Console.WriteLine(withLastName);
-            // Console.WriteLine(withLastName.GetHashCode());
+            //     var mergedPerson = ObjectExtensions.Merge<Person, Person, Person>(person1, person2);
+            //     Console.WriteLine(mergedPerson);
+            //     Console.WriteLine(mergedPerson.GetHashCode());
+            // }
+            
+            var person = new Person("Søren", 10);
+            Console.WriteLine(person);
+            Console.WriteLine(person.GetHashCode());
+            
+            var lasse = person
+                .With(p => p.Name, "Lasse");
+            Console.WriteLine(lasse);
+            Console.WriteLine(lasse.GetHashCode());
+            
+            var youngerSoren = person.With(p => p.Age, 5);
+            Console.WriteLine(youngerSoren);
+            Console.WriteLine(youngerSoren.GetHashCode());
+            
+            var withLastName = person
+                .With(p => p.Name, "Test")
+                .With(p => p.LastName, "Guldmund")
+                .With(p => p.Age, 5);
+            Console.WriteLine(withLastName);
+            Console.WriteLine(withLastName.GetHashCode());
 
+            var sorenAgain = person
+                .With(p => p.Name, "Søren");
+            Console.WriteLine(sorenAgain);
+            Console.WriteLine(sorenAgain.GetHashCode());
+            
             var noCtor = new NoCtor {Name = "Søren"};
             Console.WriteLine(noCtor);
             Console.WriteLine(noCtor.GetHashCode());
-
+            
             var noCtor1 = noCtor.With(p => p.Name, "Test");
             Console.WriteLine(noCtor1);
             Console.WriteLine(noCtor1.GetHashCode());
