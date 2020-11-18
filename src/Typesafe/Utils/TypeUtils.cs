@@ -12,7 +12,7 @@ namespace Typesafe.Utils
                 .ToDictionary(info => info.Name)
                 .Select(LowercaseKey)
                 .ToDictionary(pair => pair.Key, pair => pair.Value);
-            
+
         private static KeyValuePair<string, TValue> LowercaseKey<TValue>(KeyValuePair<string, TValue> pair)
         {
             var lowercasedKey = Lowercase(pair.Key);
@@ -28,5 +28,11 @@ namespace Typesafe.Utils
                 return firstLetterInUppercase + remainingString;
             }
         }
+
+        public static ConstructorInfo GetSuitableConstructor<T>() =>
+            typeof(T)
+                .GetConstructors()
+                .OrderByDescending(info => info.GetParameters().Length)
+                .FirstOrDefault();
     }
 }

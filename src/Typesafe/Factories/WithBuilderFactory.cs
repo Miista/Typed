@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Linq;
-using System.Reflection;
 using Typesafe.Builders;
+using Typesafe.Utils;
 
 namespace Typesafe.Factories
 {
@@ -9,18 +8,9 @@ namespace Typesafe.Factories
     {
         public static IWithBuilder<T> Create<T>()
         {
-            var constructor = GetSuitableConstructor<T>() ?? throw new InvalidOperationException($"Could not find any constructor for type {typeof(T)}.");
+            var constructor = TypeUtils.GetSuitableConstructor<T>() ?? throw new InvalidOperationException($"Could not find any constructor for type {typeof(T)}.");
             
             return new UnifiedWithBuilder<T>(constructor);
-            // return new MixedConstructorAndPropertyWithBuilder<T>(constructor);
-        }
-
-        private static ConstructorInfo GetSuitableConstructor<T>()
-        {
-            return typeof(T)
-                .GetConstructors()
-                .OrderByDescending(info => info.GetParameters().Length)
-                .FirstOrDefault();
         }
     }
 }
