@@ -15,7 +15,7 @@ namespace Typesafe.Sandbox
             Age = age;
         }
 
-        public override string ToString() => $"Name={Name}; Age={Age}; LastName={LastName};";
+        public override string ToString() => $"Name={Name}; Age={Age}; LastName={LastName}; HashCode={GetHashCode()};";
     }
 
     class NoCtor
@@ -27,7 +27,6 @@ namespace Typesafe.Sandbox
 
     class UnrelatedType
     {
-        
     }
     
     class Program
@@ -41,45 +40,36 @@ namespace Typesafe.Sandbox
             
                 var mergedPerson = Merge.ObjectExtensions.Merge(person1, person2);
                 Console.WriteLine(mergedPerson);
-                Console.WriteLine(mergedPerson.GetHashCode());
 
                 var unsafeMerged = Merge.ObjectExtensions.Merge<UnrelatedType, Person, NoCtor>(person1, person3);
                 Console.WriteLine(unsafeMerged);
-                Console.WriteLine(unsafeMerged.GetHashCode());
             }
             
             var person = new Person("Søren", 10);
             Console.WriteLine(person);
-            Console.WriteLine(person.GetHashCode());
             
             var lasse = person
                 .With(p => p.Name, "Lasse");
             Console.WriteLine(lasse);
-            Console.WriteLine(lasse.GetHashCode());
             
             var youngerSoren = person.With(p => p.Age, 5);
             Console.WriteLine(youngerSoren);
-            Console.WriteLine(youngerSoren.GetHashCode());
             
             var withLastName = person
                 .With(p => p.Name, "Test")
                 .With(p => p.LastName, "Guldmund")
                 .With(p => p.Age, 5);
             Console.WriteLine(withLastName);
-            Console.WriteLine(withLastName.GetHashCode());
             
             var sorenAgain = person
                 .With(p => p.Name, "Søren");
             Console.WriteLine(sorenAgain);
-            Console.WriteLine(sorenAgain.GetHashCode());
             
             var noCtor = new NoCtor {Name = "Søren"};
             Console.WriteLine(noCtor);
-            Console.WriteLine(noCtor.GetHashCode());
             
             var noCtor1 = noCtor.With(p => p.Name, "Test");
             Console.WriteLine(noCtor1);
-            Console.WriteLine(noCtor1.GetHashCode());
         }
     }
 }
