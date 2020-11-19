@@ -37,7 +37,7 @@ Task("Pack")
   .IsDependentOn("Test")
   .Does(() =>
 {
-  Pack("Typed.With", new [] { "netstandard2.0", "netcoreapp2.0" });
+  Pack("Typesafe", new [] { "netstandard2.0" });
 })
 ;
 
