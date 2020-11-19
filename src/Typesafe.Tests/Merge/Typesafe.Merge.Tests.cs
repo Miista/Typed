@@ -4,7 +4,8 @@ using AutoFixture;
 using FluentAssertions;
 using Xunit;
 
-namespace Typed.Merge.Tests
+// ReSharper disable once CheckNamespace
+namespace Typesafe.Merge.Tests
 {
     internal class SourceWithConstructor {
         public string Id { get; }
@@ -87,7 +88,7 @@ namespace Typed.Merge.Tests
             var destination = new DestinationWithConstructor(destinationId, destinationName, destinationAge);
 
             // Act
-            var result = TypeMerger.Merge<SourceWithConstructor, SourceWithConstructor, DestinationWithConstructor>(source, destination);
+            var result = ObjectExtensions.Merge<SourceWithConstructor, SourceWithConstructor, DestinationWithConstructor>(source, destination);
 
             // Assert
             result.Age.Should().Be(expectedAge);
@@ -117,7 +118,7 @@ namespace Typed.Merge.Tests
             };
 
             // Act
-            var result = TypeMerger.Merge<SourceWithSetters, SourceWithSetters, DestinationWithSetters>(source, destination);
+            var result = ObjectExtensions.Merge<SourceWithSetters, SourceWithSetters, DestinationWithSetters>(source, destination);
 
             // Assert
             result.Age.Should().Be(expectedAge);
@@ -142,7 +143,7 @@ namespace Typed.Merge.Tests
             };
 
             // Act
-            var result = TypeMerger.Merge<SourceWithConstructor, SourceWithConstructor, DestinationWithSetters>(source, destination);
+            var result = ObjectExtensions.Merge<SourceWithConstructor, SourceWithConstructor, DestinationWithSetters>(source, destination);
 
             // Assert
             result.Age.Should().Be(expectedAge);
@@ -162,7 +163,7 @@ namespace Typed.Merge.Tests
             var destination = new SourceWithConstructor(destinationId, destinationName, destinationAge);
 
             // Act
-            var result = TypeMerger.Merge<SourceWithConstructor, SourceWithConstructor, SourceWithConstructor>(source, destination);
+            var result = ObjectExtensions.Merge<SourceWithConstructor, SourceWithConstructor, SourceWithConstructor>(source, destination);
 
             // Assert
             result.Age.Should().Be(expectedAge);
@@ -187,7 +188,7 @@ namespace Typed.Merge.Tests
             var destination = new DestinationWithConstructor(destinationId, destinationName, destinationAge);
 
             // Act
-            var result = TypeMerger.Merge<SourceWithSetters, SourceWithSetters, DestinationWithConstructor>(source, destination);
+            var result = ObjectExtensions.Merge<SourceWithSetters, SourceWithSetters, DestinationWithConstructor>(source, destination);
 
             // Assert
             result.Age.Should().Be(expectedAge);
@@ -207,7 +208,7 @@ namespace Typed.Merge.Tests
             var destination = new DestinationWithConstructor(destinationId, destinationName, destinationAge);
 
             // Act
-            var result = TypeMerger.Merge<SourceWithConstructor, SourceWithConstructor, DestinationWithConstructor>(source, destination);
+            var result = ObjectExtensions.Merge<SourceWithConstructor, SourceWithConstructor, DestinationWithConstructor>(source, destination);
 
             // Assert
             result.Age.Should().Be(expectedAge);
@@ -224,7 +225,7 @@ namespace Typed.Merge.Tests
             var right = fixture.Create<DestinationWithPropertiesAndMissingProperties>();
             
             // Act
-            var result = TypeMerger.Merge<SourceWithPropertiesAndMissingProperties, SourceWithPropertiesAndMissingProperties, DestinationWithPropertiesAndMissingProperties>(left, right);
+            var result = ObjectExtensions.Merge<SourceWithPropertiesAndMissingProperties, SourceWithPropertiesAndMissingProperties, DestinationWithPropertiesAndMissingProperties>(left, right);
             
             // Assert
             result.Id.Should().Be(right.Id);
@@ -242,7 +243,7 @@ namespace Typed.Merge.Tests
             var right = fixture.Create<DestinationWithConstructorAndMissingProperties>();
             
             // Act
-            var result = TypeMerger.Merge<SourceWithConstructorAndMissingProperties, SourceWithConstructorAndMissingProperties, DestinationWithConstructorAndMissingProperties>(left, right);
+            var result = ObjectExtensions.Merge<SourceWithConstructorAndMissingProperties, SourceWithConstructorAndMissingProperties, DestinationWithConstructorAndMissingProperties>(left, right);
             
             // Assert
             result.Id.Should().Be(right.Id);
@@ -305,7 +306,7 @@ namespace Typed.Merge.Tests
             var right = new OneSideWithConstructor(rightId);
 
             // Act
-            var result = TypeMerger.Merge<TargetOfLeftAndRightWithConstructor, AnotherSideWithConstructor, OneSideWithConstructor>(left, right);
+            var result = ObjectExtensions.Merge<TargetOfLeftAndRightWithConstructor, AnotherSideWithConstructor, OneSideWithConstructor>(left, right);
 
             // Assert
             result.OneTargetId.Should().Be(targetId);
@@ -322,7 +323,7 @@ namespace Typed.Merge.Tests
             var right = new OneSideWithProperties {OneTargetId = rightId};
 
             // Act
-            var result = TypeMerger.Merge<TargetOfLeftAndRightWithProperties, AnotherSideWithProperties, OneSideWithProperties>(left, right);
+            var result = ObjectExtensions.Merge<TargetOfLeftAndRightWithProperties, AnotherSideWithProperties, OneSideWithProperties>(left, right);
 
             // Assert
             result.OneTargetId.Should().Be(targetId);
@@ -339,7 +340,7 @@ namespace Typed.Merge.Tests
             var right = new OneSideWithConstructor(rightId);
 
             // Act
-            var result = TypeMerger.Merge<TargetOfLeftAndRightWithConstructor, AnotherSideWithConstructor, OneSideWithConstructor>(left, right);
+            var result = ObjectExtensions.Merge<TargetOfLeftAndRightWithConstructor, AnotherSideWithConstructor, OneSideWithConstructor>(left, right);
 
             // Assert
             result.AnotherTargetId.Should().Be(targetId);
@@ -356,7 +357,7 @@ namespace Typed.Merge.Tests
             var right = new OneSideWithProperties {OneTargetId = rightId};
 
             // Act
-            var result = TypeMerger.Merge<TargetOfLeftAndRightWithProperties, AnotherSideWithProperties, OneSideWithProperties>(left, right);
+            var result = ObjectExtensions.Merge<TargetOfLeftAndRightWithProperties, AnotherSideWithProperties, OneSideWithProperties>(left, right);
 
             // Assert
             result.AnotherTargetId.Should().Be(targetId);
