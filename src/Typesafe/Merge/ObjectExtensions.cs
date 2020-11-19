@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("Typesafe.Tests")]
+[assembly: InternalsVisibleTo("Typesafe.Sandbox")]
 namespace Typesafe.Merge
 {
-    public static class ObjectExtensions
+    internal static class ObjectExtensions
     {
         /// <summary>
         /// Merges <paramref name="right"/> into <paramref name="left"/>.
