@@ -24,6 +24,11 @@ namespace Typesafe.Sandbox
 
         public override string ToString() => $"Name={Name};";
     }
+
+    class UnrelatedType
+    {
+        
+    }
     
     class Program
     {
@@ -34,9 +39,13 @@ namespace Typesafe.Sandbox
                 var person2 = new Person("Lasse", 11);
                 var person3 = new NoCtor();
             
-                var mergedPerson = Merge.ObjectExtensions.Merge<NoCtor, Person, Person>(person1, person2);
+                var mergedPerson = Merge.ObjectExtensions.Merge(person1, person2);
                 Console.WriteLine(mergedPerson);
                 Console.WriteLine(mergedPerson.GetHashCode());
+
+                var unsafeMerged = Merge.ObjectExtensions.Merge<UnrelatedType, Person, NoCtor>(person1, person3);
+                Console.WriteLine(unsafeMerged);
+                Console.WriteLine(unsafeMerged.GetHashCode());
             }
             
             var person = new Person("Søren", 10);

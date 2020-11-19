@@ -1,58 +1,47 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using Typesafe.Utils;
 
 namespace Typesafe.Merge
 {
     public static class ObjectExtensions
     {
+        /// <summary>
+        /// Merges <paramref name="right"/> into <paramref name="left"/>.
+        /// </summary>
+        /// <param name="left">The left side of the merge.</param>
+        /// <param name="right">The right side of the merge.</param>
+        /// <typeparam name="T">The type on both sides of the merge.</typeparam>
+        /// <returns>A new instance of <typeparamref name="T"/>.</returns>
+        /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
+        public static T Merge<T>(T left, T right)
+            where T : class
+        {
+            if (left == null) throw new ArgumentNullException(nameof(left));
+            if (right == null) throw new ArgumentNullException(nameof(right));
+
+            var builder = new UnifiedMergeBuilder();
+            
+            return builder.Construct<T, T, T>(left, right);
+        }
+        
+        /// <summary>
+        /// Merges <paramref name="right"/> into <paramref name="left"/>.
+        /// </summary>
+        /// <param name="left">The left side of the merge.</param>
+        /// <param name="right">The right side of the merge.</param>
+        /// <typeparam name="TDestination">The type of the merged instance.</typeparam>
+        /// <typeparam name="TLeft">The type on the left side of the merge.</typeparam>
+        /// <typeparam name="TRight">The type on the right side of the merge.</typeparam>
+        /// <returns>A new instance of <typeparamref name="TDestination"/>.</returns>
+        /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
         public static TDestination Merge<TDestination, TLeft, TRight>(TLeft left, TRight right)
             where TDestination : class
         {
             if (left == null) throw new ArgumentNullException(nameof(left));
             if (right == null) throw new ArgumentNullException(nameof(right));
-
-            var constructor = TypeUtils.GetSuitableConstructor<TDestination>();
+        
+            var builder = new UnifiedMergeBuilder();
             
-            return MergeByConstructor<TDestination, TLeft, TRight>(left, right, constructor);
-        }
-
-        private static TDestination MergeByConstructor<TDestination, TLeft, TRight>(
-            TLeft left,
-            TRight right,
-            ConstructorInfo constructorInfo)
-            where TDestination : class
-        {
-            var valueResolver = new ValueResolver<TLeft, TRight>(left, right);
-
-            var alreadySetProperties = new List<string>();
-            var constructorParameters = new List<object>();
-
-            // 1. Create new instance
-            foreach (var parameter in constructorInfo.GetParameters())
-            {
-                var value = valueResolver.Resolve(parameter.Name);
-                
-                constructorParameters.Add(value);
-                alreadySetProperties.Add(parameter.Name);
-            }
-
-            var constructedInstance = constructorInfo.Invoke(constructorParameters.ToArray()) as TDestination
-                                      ?? throw new InvalidOperationException(
-                                          $"Cannot construct instance of type {typeof(TDestination)}");
-            
-            // 2. Set any properties on the destination that was not set
-            foreach (var pair in (IReadOnlyDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TDestination>())
-            {
-                if (alreadySetProperties.Contains(pair.Key)) continue;
-                
-                var value = valueResolver.Resolve(pair.Key);
-                
-                pair.Value?.SetValue(constructedInstance, value);
-            }
-
-            return constructedInstance;
+            return builder.Construct<TDestination, TLeft, TRight>(left, right);
         }
     }
 }

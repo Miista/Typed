@@ -20,6 +20,13 @@ namespace Typesafe.Merge
             _rightProperties = TypeUtils.GetPropertyDictionary<TRight>();
         }
 
+        public object Resolve(ParameterInfo parameterInfo)
+        {
+            if (parameterInfo == null) throw new ArgumentNullException(nameof(parameterInfo));
+
+            return Resolve(parameterInfo.Name);
+        }
+        
         public object Resolve(string parameterName)
         {
             if (parameterName == null) throw new ArgumentNullException(nameof(parameterName));

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using FluentAssertions;
 using Xunit;
 
+// ReSharper disable once CheckNamespace
 namespace Typesafe.With.Tests
 {
     internal class SourceWithConstructor {

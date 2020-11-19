@@ -4,6 +4,7 @@ using AutoFixture;
 using FluentAssertions;
 using Xunit;
 
+// ReSharper disable once CheckNamespace
 namespace Typesafe.Merge.Tests
 {
     internal class SourceWithConstructor {
