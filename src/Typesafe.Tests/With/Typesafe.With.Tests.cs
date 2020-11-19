@@ -61,11 +61,11 @@ namespace Typesafe.With.Tests
                 yield return new object[] {0u, 1u, 1u};
                 yield return new object[] {0ul, 1ul, 1ul};
                 yield return new object[] {0L, 1L, 1L};
-                yield return new object[] {0M, 1M, 1M};
+//                yield return new object[] {0M, 1M, 1M};
                 yield return new object[] {0d, 1d, 1d};
                 yield return new object[] {0f, 1f, 1f};
                 yield return new object[] {false, true, true};
-                yield return new object[] {"Hello", "World", "World"};
+//                yield return new object[] {"Hello", "World", "World"};
                 yield return new object[] {'a', 'b', 'b'};
                 yield return new object[] {(byte) 0, (byte) 1, (byte) 1};
             }
