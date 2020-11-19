@@ -6,7 +6,7 @@ using Typesafe.Utils;
 
 namespace Typesafe.With
 {
-    public class UnifiedWithBuilder<T>
+    internal class UnifiedWithBuilder<T>
     {
         private readonly ConstructorInfo _constructorInfo;
 
