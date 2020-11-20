@@ -75,8 +75,8 @@ public class Person
 
 var harry = new Person("Harry Potter", House.Gryffindor);
 var malfoy = harry
-				.With(p => p.Name, "Malfoy")
-				.With(p => p.House, House.Slytherin);
+	.With(p => p.Name, "Malfoy")
+	.With(p => p.House, House.Slytherin);
 
 Console.WriteLine(malfoy.House); // Prints "Slytherin"
 ```
