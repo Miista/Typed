@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Typesafe.Utils
+namespace Typesafe.Kernel
 {
     internal static class StringExtensions
     {

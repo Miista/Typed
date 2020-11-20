@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace Typesafe.Utils
+namespace Typesafe.Kernel
 {
     internal static class TypeUtils
     {

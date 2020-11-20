@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Typesafe\Typesafe.csproj" />
+    <ProjectReference Include="..\Typesafe.Merge\Typesafe.Merge.csproj" />
+    <ProjectReference Include="..\Typesafe.With\Typesafe.With.csproj" />
   </ItemGroup>
 
 </Project>

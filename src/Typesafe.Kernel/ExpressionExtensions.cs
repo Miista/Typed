@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
-namespace Typesafe.Utils
+[assembly: InternalsVisibleTo("Typesafe.With")]
+[assembly: InternalsVisibleTo("Typesafe.Merge")]
+[assembly: InternalsVisibleTo("Typesafe")]
+namespace Typesafe.Kernel
 {
     internal static class ExpressionExtensions
     {
-        public static string GetProperty<T, TProperty>(this Expression<Func<T, TProperty>> expression)
+        public static string GetPropertyName<T, TProperty>(this Expression<Func<T, TProperty>> expression)
         {
             if (expression == null) throw new ArgumentNullException(nameof(expression));
             
