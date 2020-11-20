@@ -1,4 +1,5 @@
 ﻿using System;
+using Typesafe.Merge;
 using Typesafe.With;
 
 namespace Typesafe.Sandbox
@@ -38,10 +39,13 @@ namespace Typesafe.Sandbox
                 var person2 = new Person("Lasse", 11);
                 var person3 = new NoCtor();
             
-                var mergedPerson = Merge.ObjectExtensions.Merge(person1, person2);
+                var mergedPerson = person1.Merge(person2);
                 Console.WriteLine(mergedPerson);
 
-                var unsafeMerged = Merge.ObjectExtensions.Merge<UnrelatedType, Person, NoCtor>(person1, person3);
+                var mergedPerson2 = person1.Merge<UnrelatedType, Person, Person>(person2);
+                Console.WriteLine(mergedPerson2);
+                
+                var unsafeMerged = person1.Merge<UnrelatedType, Person, NoCtor>(person3);
                 Console.WriteLine(unsafeMerged);
             }
             

@@ -12,7 +12,7 @@ namespace Typesafe.Merge
         /// <typeparam name="T">The type on both sides of the merge.</typeparam>
         /// <returns>A new instance of <typeparamref name="T"/>.</returns>
         /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
-        public static T Merge<T>(T left, T right)
+        public static T Merge<T>(this T left, T right)
             where T : class
         {
             if (left == null) throw new ArgumentNullException(nameof(left));
@@ -33,7 +33,7 @@ namespace Typesafe.Merge
         /// <typeparam name="TRight">The type on the right side of the merge.</typeparam>
         /// <returns>A new instance of <typeparamref name="TDestination"/>.</returns>
         /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
-        public static TDestination Merge<TDestination, TLeft, TRight>(TLeft left, TRight right)
+        public static TDestination Merge<TDestination, TLeft, TRight>(this TLeft left, TRight right)
             where TDestination : class
         {
             if (left == null) throw new ArgumentNullException(nameof(left));
