@@ -78,6 +78,7 @@ var malfoy = harry
 	.With(p => p.Name, "Malfoy")
 	.With(p => p.House, House.Slytherin);
 
+Console.WriteLine(malfoy.Name); // Prints "Malfoy"
 Console.WriteLine(malfoy.House); // Prints "Slytherin"
 ```
 
