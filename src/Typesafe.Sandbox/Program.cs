@@ -30,10 +30,33 @@ namespace Typesafe.Sandbox
     {
     }
     
+    class Student
+    {
+        public string Name { get; }
+        public House House { get; }
+    
+        public Student(string name, House house) => (Name, House) = (name, house);
+    }
+
+    enum House
+    {
+        Gryffindor,
+        Slytherin
+    }
+    
     class Program
     {
         static void Main(string[] args)
         {
+            {
+                
+                var harry = new Student("Harry Potter", House.Gryffindor);
+                var malfoy = harry
+                    .With(p => p.Name, "Malfoy")
+                    .With(p => p.House, House.Slytherin);
+                Console.WriteLine(malfoy.House);
+            }
+            
             {
                 var person1 = new Person("Søren", 10) {LastName = "Ost"};
                 var person2 = new Person("Lasse", 11);
