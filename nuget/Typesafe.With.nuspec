@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Typesafe.With</id>
-    <version>1.0.0-alpha</version>
+    <version>1.0.1-alpha0001</version>
     <title>Typesafe: Adding typesafe with'ers</title>
     <authors>Søren Guldmund</authors>
     <owners>Søren Guldmund</owners>
@@ -13,7 +13,10 @@
     <description>A typesafe way of adding with-functionality to any type.</description>
     <copyright>Copyright 2020</copyright>
     <tags>Typed With Immutable Records Functional</tags>
-    <releaseNotes>Initial release</releaseNotes>
+    <releaseNotes>
+		* Validate whether property can be set before constructing the instance
+		* Skip non-writable properties when copying properties
+	</releaseNotes>
 
     <dependencies>
       <group targetFramework="netstandard2.0" />
