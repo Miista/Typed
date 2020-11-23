@@ -102,7 +102,7 @@ namespace Typesafe.With
                 publicProperties.Remove(parameter);
             }
 
-            return publicProperties.Values;
+            return publicProperties.Values.Where(info => info.CanWrite);
             
             IEnumerable<string> GetConstructorParameterNames()
             {

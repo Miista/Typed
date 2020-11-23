@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using FluentAssertions;
 using Xunit;
@@ -35,6 +36,159 @@ namespace Typesafe.With.Tests
 
     public class Tests
     {
+        public class PropertyCopy
+        {
+            private const string TextValue = "Text";
+            
+            private class TypeWithNoSetter
+            {
+                public string Text { get; }
+                public int Age { get; }
+
+                public TypeWithNoSetter(int age)
+                {
+                    Age = age;
+                    Text = TextValue;
+                }
+            }
+
+            private class TypeWithPrivateSetter
+            {
+                public string Text { get; private set; }
+                public int Age { get; }
+
+                public TypeWithPrivateSetter(int age)
+                {
+                    Age = age;
+                    Text = TextValue;
+                }
+            }
+
+            private class TypeWithInternalSetter
+            {
+                public string Text { get; internal set; }
+                public int Age { get; }
+
+                public TypeWithInternalSetter(int age)
+                {
+                    Age = age;
+                    Text = TextValue;
+                }
+            }
+            
+            private class TypeWithExpressionBodiedProperty
+            {
+                public string Text => Age.ToString();
+
+                public int Age { get; }
+
+                public TypeWithExpressionBodiedProperty(int age)
+                {
+                    Age = age;
+                }
+            }
+            
+            [Theory]
+            [MemberData(nameof(TestData))]
+            public void Can_handle_properties_with_no_setter(int originalValue, int newValue)
+            {
+                // Arrange
+                var source = new TypeWithNoSetter(originalValue);
+                
+                // Act
+                var result = source.With(a => a.Age, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Age.Should().Be(newValue);
+                result.Text.Should().Be(TextValue);
+            }
+            
+            [Theory]
+            [MemberData(nameof(TestData))]
+            public void Can_handle_properties_with_private_setter(int originalValue, int newValue)
+            {
+                // Arrange
+                var source = new TypeWithPrivateSetter(originalValue);
+                
+                // Act
+                var result = source.With(a => a.Age, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Age.Should().Be(newValue);
+                result.Text.Should().Be(TextValue);
+            }
+            
+            [Theory]
+            [MemberData(nameof(TestData))]
+            public void Can_handle_properties_with_internal_setter(int originalValue, int newValue)
+            {
+                // Arrange
+                var source = new TypeWithInternalSetter(originalValue);
+                
+                // Act
+                var result = source.With(a => a.Age, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Age.Should().Be(newValue);
+                result.Text.Should().Be(TextValue);
+            }
+            
+            [Theory]
+            [MemberData(nameof(TestData))]
+            public void Can_handle_expression_bodied_property(int originalValue, int newValue)
+            {
+                // Arrange
+                var source = new TypeWithExpressionBodiedProperty(originalValue);
+                
+                // Act
+                var result = source.With(a => a.Age, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Age.Should().Be(newValue);
+                result.Text.Should().Be(newValue.ToString());
+            }
+
+            public static IEnumerable<object[]> TestData
+            {
+                get
+                {
+                    yield return new object [] {int.MinValue, 0};
+                    yield return new object [] {-1, 1};
+                    yield return new object [] {0, int.MinValue};
+                    yield return new object [] {0, int.MaxValue};
+                    yield return new object [] {int.MaxValue, -1};
+                }
+            }
+
+        }
+
+        public class General
+        {
+            private class TypeWithoutWritableProperty
+            {
+                public string Text { get; }
+            }
+            
+            [Fact]
+            public void With_fails_if_property_is_not_writable()
+            {
+                // Arrange
+                var source = new TypeWithoutWritableProperty();
+                
+                // Act
+                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, "Text");
+                
+                // Assert
+                act.Should()
+                    .Throw<InvalidOperationException>(
+                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable");
+            }
+        }
+        
         [Theory]
         [MemberData(nameof(With_works_with_any_type_Data))]
         public void With_works_with_any_type<T>(T sourceValue, T withValue, T expectedValue)
