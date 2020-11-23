@@ -38,12 +38,10 @@ namespace Typesafe.With
             if (hasConstructorParameter) return;
             
             // Can we set the property via property setter?
-            var hasSetter = TypeUtils.GetPropertyDictionary<T>().ContainsKey(propertyName);
-            
-            if (hasSetter) return;
-            
-            // If we cannot do either, then there is no point to continue.
-            throw new InvalidOperationException($"Property '{propertyName}' cannot be set via constructor or property setter.");
+            if (TypeUtils.GetPropertyDictionary<T>().TryGetValue(propertyName, out var propertyInfo) && propertyInfo.CanWrite) return;
+
+            // If we cannot do either, then there is no point in continuing.
+            throw new InvalidOperationException($"Property '{propertyName.ToPropertyCase()}' cannot be set via constructor or property setter.");
         }
     }
 }

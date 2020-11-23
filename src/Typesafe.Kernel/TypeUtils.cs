@@ -10,7 +10,7 @@ namespace Typesafe.Kernel
         public static Dictionary<string, PropertyInfo> GetPropertyDictionary<T>() =>
             typeof(T)
                 .GetProperties()
-                .ToDictionary(info => info.Name.ToPropertyCase());
+                .ToDictionary(info => info.Name.ToParameterCase());
 
         public static ConstructorInfo GetSuitableConstructor<T>() =>
             typeof(T)

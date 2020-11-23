@@ -185,7 +185,8 @@ namespace Typesafe.With.Tests
                 // Assert
                 act.Should()
                     .Throw<InvalidOperationException>(
-                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable");
+                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
+                    .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
             }
         }
         
