@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using Typesafe.Kernel;
 
@@ -18,10 +19,31 @@ namespace Typesafe.With
                 {propertyName, propertyValue}
             };
 
+            Validate<T>(propertyName);
+            
             var constructor = TypeUtils.GetSuitableConstructor<T>();
             var builder = new UnifiedWithBuilder<T>(constructor);
             
             return builder.Construct(instance, properties);
+        }
+
+        private static void Validate<T>(string propertyName)
+        {
+            // Can we set the property via constructor?
+            var hasConstructorParameter = TypeUtils.GetSuitableConstructor<T>()
+                .GetParameters()
+                .Select(info => info.Name)
+                .Contains(propertyName);
+            
+            if (hasConstructorParameter) return;
+            
+            // Can we set the property via property setter?
+            var hasSetter = TypeUtils.GetPropertyDictionary<T>().ContainsKey(propertyName);
+            
+            if (hasSetter) return;
+            
+            // If we cannot do either, then there is no point to continue.
+            throw new InvalidOperationException($"Property '{propertyName}' cannot be set via constructor or property setter.");
         }
     }
 }
