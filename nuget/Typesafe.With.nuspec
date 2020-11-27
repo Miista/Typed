@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
   <metadata>
     <id>Typesafe.With</id>
-    <version>1.0.1-alpha0002</version>
+    <version>1.0.1</version>
     <title>Typesafe: Adding typesafe with'ers</title>
     <authors>Søren Guldmund</authors>
     <owners>Søren Guldmund</owners>
