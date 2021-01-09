@@ -50,11 +50,21 @@ namespace Typesafe.With
 
         private static bool HasConstructorParameter<T>(string propertyName)
         {
+            var constructorParameters = TypeUtils.GetSuitableConstructor<T>().GetParameters();
+            
             // Can we find a matching constructor parameter?
-            return TypeUtils.GetSuitableConstructor<T>()
-                .GetParameters()
-                .Select(info => info.Name)
-                .Contains(propertyName);
+            var hasConstructorParameter = constructorParameters
+                .Any(info => string.Equals(info.Name, propertyName, StringComparison.Ordinal));
+            
+            if (hasConstructorParameter) return true;
+
+            // Can we find a matching constructor parameter if we lowercase both parameter and property name?
+            var hasConstructorParameterByLowercase = constructorParameters
+                .Any(info => string.Equals(info.Name, propertyName, StringComparison.InvariantCultureIgnoreCase));
+
+            if (hasConstructorParameterByLowercase) return true;
+
+            return false;
         }
     }
 }

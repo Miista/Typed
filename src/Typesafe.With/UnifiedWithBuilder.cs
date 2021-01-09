@@ -125,13 +125,13 @@ namespace Typesafe.With
 
             foreach (var parameter in constructorInfo.GetParameters())
             {
-                existingProperties.TryGetValue(parameter.Name, out var existingProperty);
+                var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
                 var originalValue = existingProperty?.GetValue(instance);
-                var hasNewValue = newProperties.TryGetValue(parameter.Name, out var newValue);
+                var hasNewValue = newProperties.TryGetValue(propertyName, out var newValue);
                 var value = hasNewValue ? newValue : originalValue;
                 
                 parameters.Add(value);
-                remainingProperties.Remove(parameter.Name);
+                remainingProperties.Remove(propertyName);
             }
 
             var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance
@@ -139,6 +139,24 @@ namespace Typesafe.With
                 : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
 
             return (constructedInstance, remainingProperties);
+            
+            (PropertyInfo ExistingProperty, string PropertyName) TryFindExistingProperty(ParameterInfo parameterInfo)
+            {
+                // Can we find a matching constructor parameter?
+                if (existingProperties.TryGetValue(parameterInfo.Name, out var existingPropertyByExactMatch))
+                {
+                    return (existingPropertyByExactMatch, parameterInfo.Name);
+                }
+
+                // Can we find a matching constructor parameter if we lowercase both parameter and property name?
+                var existingPropertyKey =
+                    existingProperties.Keys.FirstOrDefault(key => string.Equals(key, parameterInfo.Name, StringComparison.InvariantCultureIgnoreCase))
+                    ?? throw new InvalidOperationException($"Cannot find property for constructor parameter '{parameterInfo.Name}'.");
+
+                var existingPropertyByLowercaseMatch = existingProperties[existingPropertyKey];
+                
+                return (existingPropertyByLowercaseMatch, existingPropertyKey);
+            }
         }
     }
 }

@@ -241,6 +241,29 @@ namespace Typesafe.With.Tests
                 result.Fullname.Should().Be("NewValue1");
                 result.FullName.Should().Be("NewValue2");
             }
+            
+            internal class TypeWithDifferentCasingInConstructor
+            {
+                public string SSN { get; }
+
+                public TypeWithDifferentCasingInConstructor(string ssn)
+                {
+                    SSN = ssn;
+                }
+            }
+        
+            [Fact]
+            public void Can_set_property_which_has_different_casing_in_the_constructor()
+            {
+                // Arrange
+                var source = new TypeWithDifferentCasingInConstructor(ssn: "Some value");
+            
+                // Act
+                var result = source.With(_ => _.SSN, "New value");
+
+                // Assert
+                result.SSN.Should().Be("New value", because: "the property is set via constructor");
+            }
         }
         
         [Theory]
