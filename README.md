@@ -82,5 +82,17 @@ Console.WriteLine(malfoy.Name); // Prints "Malfoy"
 Console.WriteLine(malfoy.House); // Prints "Slytherin"
 ```
 
+## How it works
+The resulting type `T` is constructed via the following steps:
+
+1. Find appropriate^+^ constructor _C_ for type `T`
+2. Resolve arguments _A~C~_
+2. Invoke _C_, exchanging the argument to be swapped
+2. Call property setters, exchanging the argument to be swapped
+
+^+^ The constructor taking the most arguments. If there is no constructor, the default constructor is called.
+
+In step 2, if the constructor _C_ takes the argument to be swapped, the 
+
 ## Convention
 Typesafe.With relies on the convention that the property is named the same in the type constructor.
