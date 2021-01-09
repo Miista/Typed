@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using FluentAssertions;
@@ -212,6 +212,34 @@ namespace Typesafe.With.Tests
                 act.Should()
                     .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithNoMatchingConstructorArgument.FullName)}'")
                     .WithMessage("Property '*' cannot be set via constructor or property setter.");
+            }
+        }
+
+        public class Casing
+        {
+            private class TypeWithPropertiesHavingSameNameButDifferentCasing
+            {
+                public string Fullname { get; }
+                public string FullName { get; }
+
+                public TypeWithPropertiesHavingSameNameButDifferentCasing(string fullname, string fullName) => (Fullname, FullName) = (fullname, fullName);
+            }
+        
+            [Fact]
+            public void Correctly_set_properties_with_same_name_but_different_casing()
+            {
+                // Arrange
+                var source = new TypeWithPropertiesHavingSameNameButDifferentCasing(fullname: "Value1", fullName: "Value2");
+            
+                // Act
+                var result = source
+                    .With(_ => _.Fullname, "NewValue1")
+                    .With(_ => _.FullName, "NewValue2");
+            
+                // Assert
+                result.Should().NotBeNull();
+                result.Fullname.Should().Be("NewValue1");
+                result.FullName.Should().Be("NewValue2");
             }
         }
         
