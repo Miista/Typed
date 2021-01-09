@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using FluentAssertions;
@@ -187,6 +187,31 @@ namespace Typesafe.With.Tests
                     .Throw<InvalidOperationException>(
                         because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
                     .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
+            }
+            
+            private class TypeWithNoMatchingConstructorArgument
+            {
+                public string FullName { get; }
+
+                public TypeWithNoMatchingConstructorArgument(string name)
+                {
+                    FullName = name;
+                }
+            }
+        
+            [Fact]
+            public void With_fails_if_property_has_no_matching_constructor_argument()
+            {
+                // Arrange
+                var source = new TypeWithNoMatchingConstructorArgument(name: "Some value");
+            
+                // Act
+                Action act = () => source.With(_ => _.FullName, "New value");
+
+                // Assert
+                act.Should()
+                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithNoMatchingConstructorArgument.FullName)}'")
+                    .WithMessage("Property '*' cannot be set via constructor or property setter.");
             }
         }
         
