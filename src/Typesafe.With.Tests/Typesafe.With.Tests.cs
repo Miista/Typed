@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using AutoFixture;
 using FluentAssertions;
 using Xunit;
 
@@ -34,6 +35,11 @@ namespace Typesafe.With.Tests
         public T Value { get; set; }
     }
 
+    public class TestBase
+    {
+        protected readonly Fixture Fixture = new Fixture();
+    }
+    
     public class Tests
     {
         public class PropertyCopy
@@ -166,7 +172,7 @@ namespace Typesafe.With.Tests
 
         }
 
-        public class General
+        public class General : TestBase
         {
             private class TypeWithoutWritableProperty
             {
@@ -178,9 +184,10 @@ namespace Typesafe.With.Tests
             {
                 // Arrange
                 var source = new TypeWithoutWritableProperty();
+                var newValue = Fixture.Create<string>();
                 
                 // Act
-                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, "Text");
+                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
                 
                 // Assert
                 act.Should()
@@ -189,11 +196,11 @@ namespace Typesafe.With.Tests
                     .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
             }
             
-            private class TypeWithNoMatchingConstructorArgument
+            private class TypeWithoutMatchingConstructorArgument
             {
                 public string FullName { get; }
 
-                public TypeWithNoMatchingConstructorArgument(string name)
+                public TypeWithoutMatchingConstructorArgument(string name)
                 {
                     FullName = name;
                 }
@@ -203,19 +210,176 @@ namespace Typesafe.With.Tests
             public void With_fails_if_property_has_no_matching_constructor_argument()
             {
                 // Arrange
-                var source = new TypeWithNoMatchingConstructorArgument(name: "Some value");
+                var source = Fixture.Create<TypeWithoutMatchingConstructorArgument>();
+                var newValue = Fixture.Create<string>();
             
                 // Act
-                Action act = () => source.With(_ => _.FullName, "New value");
+                Action act = () => source.With(_ => _.FullName, newValue);
 
                 // Assert
                 act.Should()
-                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithNoMatchingConstructorArgument.FullName)}'")
+                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
                     .WithMessage("Property '*' cannot be set via constructor or property setter.");
+            }
+            
+            [Theory]
+            [MemberData(nameof(With_works_with_any_type_Data))]
+            public void With_works_with_any_type<T>(T sourceValue, T withValue, T expectedValue)
+            {
+                // Arrange
+                var source = new Container<T> {Value = sourceValue};
+            
+                // Act
+                var result = source.With(_ => _.Value, withValue);
+            
+                // Assert
+                result.Should().BeOfType<Container<T>>();
+                result.Value.Should().Be(expectedValue);
+            }
+
+            // ReSharper disable once InconsistentNaming
+            public static IEnumerable<object[]> With_works_with_any_type_Data
+            {
+                get
+                {
+                    yield return new object[] {0, 1, 1};
+                    yield return new object[] {(short) 0, (short) 1, (short) 1};
+                    yield return new object[] {(ushort) 0, (ushort) 1, (ushort) 1};
+                    yield return new object[] {0u, 1u, 1u};
+                    yield return new object[] {0ul, 1ul, 1ul};
+                    yield return new object[] {0L, 1L, 1L};
+                    yield return new object[] {0M, 1M, 1M};
+                    yield return new object[] {0d, 1d, 1d};
+                    yield return new object[] {0f, 1f, 1f};
+                    yield return new object[] {false, true, true};
+                    yield return new object[] {"Hello", "World", "World"};
+                    yield return new object[] {'a', 'b', 'b'};
+                    yield return new object[] {(byte) 0, (byte) 1, (byte) 1};
+                }
+            }
+            
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_call_With_on_type_with_only_property_setters(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new SourceWithSetters
+                {
+                    Id = sourceId,
+                    Name = sourceName,
+                    Age = sourceAge
+                };
+                
+                // Act
+                var result = source
+                    .With(_ => _.Id, withId)
+                    .With(_ => _.Name, withName)
+                    .With(_ => _.Age, withAge);
+
+                // Assert
+                result.Should().BeOfType<SourceWithSetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_call_With_on_type_with_only_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new SourceWithConstructor(sourceId, sourceName, sourceAge);
+
+                // Act
+                var result = source
+                    .With(_ => _.Id, withId)
+                    .With(_ => _.Name, withName)
+                    .With(_ => _.Age, withAge);
+
+                // Assert
+                result.Should().BeOfType<SourceWithConstructor>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_call_With_on_type_with_both_property_setter_and_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new SourceWithMixedConstructorAndSetters(sourceId, sourceName) {Age = sourceAge};
+
+                // Act
+                var result = source
+                    .With(_ => _.Id, withId)
+                    .With(_ => _.Name, withName)
+                    .With(_ => _.Age, withAge);
+
+                // Assert
+                result.Should().BeOfType<SourceWithMixedConstructorAndSetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+                
+            }
+
+            private class TestData : IEnumerable<object[]>
+            {
+                public IEnumerator<object[]> GetEnumerator()
+                {
+                    yield return new object[]{null, null, null, null, null, null, null, null, null};
+                    yield return new object[]{null, null, 1,    null, null, null, null, null, null};
+                    yield return new object[]{null, "1",  null, null, null, null, null, null, null};
+                    yield return new object[]{null, "1",  1,    null, null, null, null, null, null};
+                    yield return new object[]{"1",  null, null, null, null, null, null, null, null};
+                    yield return new object[]{"1",  null, 1,    null, null, null, null, null, null};
+                    yield return new object[]{"1",  "1",  null, null, null, null, null, null, null};
+                    yield return new object[]{"1",  "1",  1,    null, null, null, null, null, null};
+                    yield return new object[]{null, null, null, null, null, 2,    null, null, 2};
+                    yield return new object[]{null, null, null, null, "2",  null, null, "2",  null};
+                    yield return new object[]{null, null, null, null, "2",  2,    null, "2",  2};
+                    yield return new object[]{null, null, null, "2",  null, null, "2",  null, null};
+                    yield return new object[]{null, null, null, "2",  null, 2,    "2",  null, 2};
+                    yield return new object[]{null, null, null, "2",  "2",  null, "2",  "2",  null};
+                    yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{null, null, 1,    null, null, 2,    null, null, 2};
+                    yield return new object[]{null, "1",  null, null, "2",  null, null, "2",  null};
+                    yield return new object[]{null, "1",  1,    null, "2",  2,    null, "2",  2};
+                    yield return new object[]{"1",  null, null, "2",  null, null, "2",  null, null};
+                    yield return new object[]{"1",  null, 1,    "2",  null, 2,    "2",  null, 2};
+                    yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{"1",  "1",  1,    null, null, null, null, null, null};
+                    yield return new object[]{"1",  "1",  1,    null, null, 2,    null, null, 2};
+                    yield return new object[]{"1",  "1",  1,    null, "2",  null, null, "2",  null};
+                    yield return new object[]{"1",  "1",  1,    null, "2",  2,    null, "2",  2};
+                    yield return new object[]{"1",  "1",  1,    "2",  null, null, "2",  null, null};
+                    yield return new object[]{"1",  "1",  1,    "2",  null, 2,    "2",  null, 2};
+                    yield return new object[]{"1",  "1",  1,    "2",  "2",  null, "2",  "2",  null};
+                    yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{null, null, 1,    "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{null, "1", null,  "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{null, "1", 1,     "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{"1",  null, null, "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{"1",  null, 1,    "2",  "2",  2,    "2",  "2",  2};
+                    yield return new object[]{"1",  "1",  null, "2",  "2",  2,    "2",  "2",  2};
+                }
+
+                IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
             }
         }
 
-        public class Casing
+        public class Casing : TestBase
         {
             private class TypeWithPropertiesHavingSameNameButDifferentCasing
             {
@@ -229,20 +393,22 @@ namespace Typesafe.With.Tests
             public void Correctly_set_properties_with_same_name_but_different_casing()
             {
                 // Arrange
-                var source = new TypeWithPropertiesHavingSameNameButDifferentCasing(fullname: "Value1", fullName: "Value2");
+                var source = Fixture.Create<TypeWithPropertiesHavingSameNameButDifferentCasing>();
+                var newFullname = Fixture.Create<string>();
+                var newFullName = Fixture.Create<string>();
             
                 // Act
                 var result = source
-                    .With(_ => _.Fullname, "NewValue1")
-                    .With(_ => _.FullName, "NewValue2");
+                    .With(_ => _.Fullname, newFullname)
+                    .With(_ => _.FullName, newFullName);
             
                 // Assert
                 result.Should().NotBeNull();
-                result.Fullname.Should().Be("NewValue1");
-                result.FullName.Should().Be("NewValue2");
+                result.Fullname.Should().Be(newFullname);
+                result.FullName.Should().Be(newFullName);
             }
-            
-            internal class TypeWithDifferentCasingInConstructor
+
+            private class TypeWithDifferentCasingInConstructor
             {
                 public string SSN { get; }
 
@@ -256,183 +422,29 @@ namespace Typesafe.With.Tests
             public void Can_set_property_which_has_different_casing_in_the_constructor()
             {
                 // Arrange
-                var source = new TypeWithDifferentCasingInConstructor(ssn: "Some value");
-            
+                var source = Fixture.Create<TypeWithDifferentCasingInConstructor>();
+                var newValue = Fixture.Create<string>();
+                
                 // Act
-                var result = source.With(_ => _.SSN, "New value");
+                var result = source.With(_ => _.SSN, newValue);
 
                 // Assert
-                result.SSN.Should().Be("New value", because: "the property is set via constructor");
+                result.SSN.Should().Be(newValue, because: "the property is set via constructor");
             }
-        }
-        
-        [Theory]
-        [MemberData(nameof(With_works_with_any_type_Data))]
-        public void With_works_with_any_type<T>(T sourceValue, T withValue, T expectedValue)
-        {
-            // Arrange
-            var source = new Container<T> {Value = sourceValue};
             
-            // Act
-            var result = source.With(_ => _.Value, withValue);
-            
-            // Assert
-            result.Should().BeOfType<Container<T>>();
-            result.Value.Should().Be(expectedValue);
-        }
-
-        // ReSharper disable once InconsistentNaming
-        public static IEnumerable<object[]> With_works_with_any_type_Data
-        {
-            get
+            [Fact]
+            public void Calling_With_creates_a_new_instance()
             {
-                yield return new object[] {0, 1, 1};
-                yield return new object[] {(short) 0, (short) 1, (short) 1};
-                yield return new object[] {(ushort) 0, (ushort) 1, (ushort) 1};
-                yield return new object[] {0u, 1u, 1u};
-                yield return new object[] {0ul, 1ul, 1ul};
-                yield return new object[] {0L, 1L, 1L};
-                yield return new object[] {0M, 1M, 1M};
-                yield return new object[] {0d, 1d, 1d};
-                yield return new object[] {0f, 1f, 1f};
-                yield return new object[] {false, true, true};
-                yield return new object[] {"Hello", "World", "World"};
-                yield return new object[] {'a', 'b', 'b'};
-                yield return new object[] {(byte) 0, (byte) 1, (byte) 1};
-            }
-        }
-        
-        [Fact]
-        public void Calling_With_creates_a_new_instance()
-        {
-            // Arrange
-            var source = new SourceWithSetters();
+                // Arrange
+                var source = Fixture.Create<SourceWithSetters>();
+                var newValue = Fixture.Create<string>();
                 
-            // Act
-            var result = source.With(s => s.Id, "T");
+                // Act
+                var result = source.With(s => s.Id, newValue);
 
-            // Assert
-            result.GetHashCode().Should().NotBe(source.GetHashCode());
-        }
-
-        [Theory]
-        [ClassData(typeof(TestData))]
-        public void Can_call_With_on_type_with_only_property_setters(
-            string sourceId, string sourceName, int? sourceAge,
-            string withId, string withName, int? withAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new SourceWithSetters
-            {
-                Id = sourceId,
-                Name = sourceName,
-                Age = sourceAge
-            };
-            
-            // Act
-            var result = source
-                .With(_ => _.Id, withId)
-                .With(_ => _.Name, withName)
-                .With(_ => _.Age, withAge);
-
-            // Assert
-            result.Should().BeOfType<SourceWithSetters>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
-        [Theory]
-        [ClassData(typeof(TestData))]
-        public void Can_call_With_on_type_with_only_constructor(
-            string sourceId, string sourceName, int? sourceAge,
-            string withId, string withName, int? withAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new SourceWithConstructor(sourceId, sourceName, sourceAge);
-
-            // Act
-            var result = source
-                .With(_ => _.Id, withId)
-                .With(_ => _.Name, withName)
-                .With(_ => _.Age, withAge);
-
-            // Assert
-            result.Should().BeOfType<SourceWithConstructor>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
-        [Theory]
-        [ClassData(typeof(TestData))]
-        public void Can_call_With_on_type_with_both_property_setter_and_constructor(
-            string sourceId, string sourceName, int? sourceAge,
-            string withId, string withName, int? withAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new SourceWithMixedConstructorAndSetters(sourceId, sourceName) {Age = sourceAge};
-
-            // Act
-            var result = source
-                .With(_ => _.Id, withId)
-                .With(_ => _.Name, withName)
-                .With(_ => _.Age, withAge);
-
-            // Assert
-            result.Should().BeOfType<SourceWithMixedConstructorAndSetters>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-            
-        }
-        
-        public class TestData : IEnumerable<object[]>
-        {
-            public IEnumerator<object[]> GetEnumerator()
-            {
-                yield return new object[]{null, null, null, null, null, null, null, null, null};
-                yield return new object[]{null, null, 1,    null, null, null, null, null, null};
-                yield return new object[]{null, "1",  null, null, null, null, null, null, null};
-                yield return new object[]{null, "1",  1,    null, null, null, null, null, null};
-                yield return new object[]{"1",  null, null, null, null, null, null, null, null};
-                yield return new object[]{"1",  null, 1,    null, null, null, null, null, null};
-                yield return new object[]{"1",  "1",  null, null, null, null, null, null, null};
-                yield return new object[]{"1",  "1",  1,    null, null, null, null, null, null};
-                yield return new object[]{null, null, null, null, null, 2,    null, null, 2};
-                yield return new object[]{null, null, null, null, "2",  null, null, "2",  null};
-                yield return new object[]{null, null, null, null, "2",  2,    null, "2",  2};
-                yield return new object[]{null, null, null, "2",  null, null, "2",  null, null};
-                yield return new object[]{null, null, null, "2",  null, 2,    "2",  null, 2};
-                yield return new object[]{null, null, null, "2",  "2",  null, "2",  "2",  null};
-                yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, null, 1,    null, null, 2,    null, null, 2};
-                yield return new object[]{null, "1",  null, null, "2",  null, null, "2",  null};
-                yield return new object[]{null, "1",  1,    null, "2",  2,    null, "2",  2};
-                yield return new object[]{"1",  null, null, "2",  null, null, "2",  null, null};
-                yield return new object[]{"1",  null, 1,    "2",  null, 2,    "2",  null, 2};
-                yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  "1",  1,    null, null, null, null, null, null};
-                yield return new object[]{"1",  "1",  1,    null, null, 2,    null, null, 2};
-                yield return new object[]{"1",  "1",  1,    null, "2",  null, null, "2",  null};
-                yield return new object[]{"1",  "1",  1,    null, "2",  2,    null, "2",  2};
-                yield return new object[]{"1",  "1",  1,    "2",  null, null, "2",  null, null};
-                yield return new object[]{"1",  "1",  1,    "2",  null, 2,    "2",  null, 2};
-                yield return new object[]{"1",  "1",  1,    "2",  "2",  null, "2",  "2",  null};
-                yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, null, 1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, "1", null,  "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, "1", 1,     "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  null, null, "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  null, 1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  "1",  null, "2",  "2",  2,    "2",  "2",  2};
+                // Assert
+                result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
-
-            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
     }
 }
