@@ -1,91 +1,61 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using AutoFixture;
+using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
 
 // ReSharper disable once CheckNamespace
 namespace Typesafe.With.Tests
 {
-    internal class SourceWithConstructor {
-        public string Id { get; }
-        public string Name { get; }
-        public int? Age { get; }
-
-        public SourceWithConstructor(string id, string name, int? age) => (Id, Name, Age) = (id, name, age);
-    }
-
-    internal class SourceWithSetters {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public int? Age { get; set; }
-    }
-
-    internal class SourceWithMixedConstructorAndSetters {
-        public string Id { get; }
-        public string Name { get; }
-        public int? Age { get; set; }
-
-        public SourceWithMixedConstructorAndSetters(string id, string name) => (Id, Name) = (id, name);
-    }
-
-    internal class Container<T>
-    {
-        public T Value { get; set; }
-    }
-
-    public class TestBase
-    {
-        protected readonly Fixture Fixture = new Fixture();
-    }
-    
     public class Tests
     {
         public class PropertyCopy
         {
-            private const string TextValue = "Text";
-            
-            private class TypeWithNoSetter
+            internal class TypeWithNoSetter
             {
-                public string Text { get; }
                 public int Age { get; }
 
                 public TypeWithNoSetter(int age)
                 {
                     Age = age;
-                    Text = TextValue;
                 }
             }
 
-            private class TypeWithPrivateSetter
+            [Theory, AutoData]
+            internal void Can_handle_properties_with_no_setter(TypeWithNoSetter source, int newValue)
             {
-                public string Text { get; private set; }
-                public int Age { get; }
-
-                public TypeWithPrivateSetter(int age)
-                {
-                    Age = age;
-                    Text = TextValue;
-                }
+                // Act
+                var result = source.With(a => a.Age, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Age.Should().Be(newValue);
             }
 
-            private class TypeWithInternalSetter
+            internal class TypeWithInternalSetter
             {
-                public string Text { get; internal set; }
                 public int Age { get; }
 
                 public TypeWithInternalSetter(int age)
                 {
                     Age = age;
-                    Text = TextValue;
                 }
             }
-            
-            private class TypeWithExpressionBodiedProperty
-            {
-                public string Text => Age.ToString();
 
+            [Theory, AutoData]
+            internal void Can_handle_properties_with_internal_setter(TypeWithInternalSetter source, int newValue)
+            {
+                // Act
+                var result = source.With(a => a.Age, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Age.Should().Be(newValue);
+            }
+
+            internal class TypeWithExpressionBodiedProperty
+            {
                 public int Age { get; }
 
                 public TypeWithExpressionBodiedProperty(int age)
@@ -93,99 +63,50 @@ namespace Typesafe.With.Tests
                     Age = age;
                 }
             }
-            
-            [Theory]
-            [MemberData(nameof(TestData))]
-            public void Can_handle_properties_with_no_setter(int originalValue, int newValue)
+
+            [Theory, AutoData]
+            internal void Can_handle_expression_bodied_property(TypeWithExpressionBodiedProperty source, int newValue)
             {
-                // Arrange
-                var source = new TypeWithNoSetter(originalValue);
-                
                 // Act
                 var result = source.With(a => a.Age, newValue);
                 
                 // Assert
                 result.Should().NotBeNull();
                 result.Age.Should().Be(newValue);
-                result.Text.Should().Be(TextValue);
-            }
-            
-            [Theory]
-            [MemberData(nameof(TestData))]
-            public void Can_handle_properties_with_private_setter(int originalValue, int newValue)
-            {
-                // Arrange
-                var source = new TypeWithPrivateSetter(originalValue);
-                
-                // Act
-                var result = source.With(a => a.Age, newValue);
-                
-                // Assert
-                result.Should().NotBeNull();
-                result.Age.Should().Be(newValue);
-                result.Text.Should().Be(TextValue);
-            }
-            
-            [Theory]
-            [MemberData(nameof(TestData))]
-            public void Can_handle_properties_with_internal_setter(int originalValue, int newValue)
-            {
-                // Arrange
-                var source = new TypeWithInternalSetter(originalValue);
-                
-                // Act
-                var result = source.With(a => a.Age, newValue);
-                
-                // Assert
-                result.Should().NotBeNull();
-                result.Age.Should().Be(newValue);
-                result.Text.Should().Be(TextValue);
-            }
-            
-            [Theory]
-            [MemberData(nameof(TestData))]
-            public void Can_handle_expression_bodied_property(int originalValue, int newValue)
-            {
-                // Arrange
-                var source = new TypeWithExpressionBodiedProperty(originalValue);
-                
-                // Act
-                var result = source.With(a => a.Age, newValue);
-                
-                // Assert
-                result.Should().NotBeNull();
-                result.Age.Should().Be(newValue);
-                result.Text.Should().Be(newValue.ToString());
             }
 
-            public static IEnumerable<object[]> TestData
+            internal class TypeWithPrivateSetter
             {
-                get
+                public int Age { get; }
+
+                public TypeWithPrivateSetter(int age)
                 {
-                    yield return new object [] {int.MinValue, 0};
-                    yield return new object [] {-1, 1};
-                    yield return new object [] {0, int.MinValue};
-                    yield return new object [] {0, int.MaxValue};
-                    yield return new object [] {int.MaxValue, -1};
+                    Age = age;
                 }
             }
 
+            [Theory, AutoData]
+            internal void Can_handle_properties_with_private_setter(TypeWithPrivateSetter source, int newValue)
+            {
+                // Act
+                var result = source.With(a => a.Age, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Age.Should().Be(newValue);
+            }
         }
 
-        public class General : TestBase
+        public class General
         {
-            private class TypeWithoutWritableProperty
+            internal class TypeWithoutWritableProperty
             {
                 public string Text { get; }
             }
             
-            [Fact]
-            public void With_fails_if_property_is_not_writable()
+            [Theory, AutoData]
+            internal void With_fails_if_property_is_not_writable(TypeWithoutWritableProperty source, string newValue)
             {
-                // Arrange
-                var source = new TypeWithoutWritableProperty();
-                var newValue = Fixture.Create<string>();
-                
                 // Act
                 Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
                 
@@ -195,8 +116,8 @@ namespace Typesafe.With.Tests
                         because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
                     .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
             }
-            
-            private class TypeWithoutMatchingConstructorArgument
+
+            internal class TypeWithoutMatchingConstructorArgument
             {
                 public string FullName { get; }
 
@@ -206,13 +127,9 @@ namespace Typesafe.With.Tests
                 }
             }
         
-            [Fact]
-            public void With_fails_if_property_has_no_matching_constructor_argument()
+            [Theory, AutoData]
+            internal void With_fails_if_property_has_no_matching_constructor_argument(TypeWithoutMatchingConstructorArgument source, string newValue)
             {
-                // Arrange
-                var source = Fixture.Create<TypeWithoutMatchingConstructorArgument>();
-                var newValue = Fixture.Create<string>();
-            
                 // Act
                 Action act = () => source.With(_ => _.FullName, newValue);
 
@@ -221,7 +138,12 @@ namespace Typesafe.With.Tests
                     .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
                     .WithMessage("Property '*' cannot be set via constructor or property setter.");
             }
-            
+
+            private class Container<T>
+            {
+                public T Value { get; set; }
+            }
+
             [Theory]
             [MemberData(nameof(With_works_with_any_type_Data))]
             public void With_works_with_any_type<T>(T sourceValue, T withValue, T expectedValue)
@@ -257,7 +179,14 @@ namespace Typesafe.With.Tests
                     yield return new object[] {(byte) 0, (byte) 1, (byte) 1};
                 }
             }
-            
+
+            private class SourceWithSetters
+            {
+                public string Id { get; set; }
+                public string Name { get; set; }
+                public int? Age { get; set; }
+            }
+
             [Theory]
             [ClassData(typeof(TestData))]
             public void Can_call_With_on_type_with_only_property_setters(
@@ -286,6 +215,15 @@ namespace Typesafe.With.Tests
                 result.Name.Should().Be(expectedName);
             }
 
+            private class SourceWithConstructor
+            {
+                public string Id { get; }
+                public string Name { get; }
+                public int? Age { get; }
+
+                public SourceWithConstructor(string id, string name, int? age) => (Id, Name, Age) = (id, name, age);
+            }
+            
             [Theory]
             [ClassData(typeof(TestData))]
             public void Can_call_With_on_type_with_only_constructor(
@@ -307,6 +245,15 @@ namespace Typesafe.With.Tests
                 result.Age.Should().Be(expectedAge);
                 result.Id.Should().Be(expectedId);
                 result.Name.Should().Be(expectedName);
+            }
+
+            private class SourceWithMixedConstructorAndSetters
+            {
+                public string Id { get; }
+                public string Name { get; }
+                public int? Age { get; set; }
+
+                public SourceWithMixedConstructorAndSetters(string id, string name) => (Id, Name) = (id, name);
             }
 
             [Theory]
@@ -379,9 +326,9 @@ namespace Typesafe.With.Tests
             }
         }
 
-        public class Casing : TestBase
+        public class Casing
         {
-            private class TypeWithPropertiesHavingSameNameButDifferentCasing
+            internal class TypeWithPropertiesHavingSameNameButDifferentCasing
             {
                 public string Fullname { get; }
                 public string FullName { get; }
@@ -389,14 +336,9 @@ namespace Typesafe.With.Tests
                 public TypeWithPropertiesHavingSameNameButDifferentCasing(string fullname, string fullName) => (Fullname, FullName) = (fullname, fullName);
             }
         
-            [Fact]
-            public void Correctly_set_properties_with_same_name_but_different_casing()
+            [Theory, AutoData]
+            internal void Correctly_set_properties_with_same_name_but_different_casing(TypeWithPropertiesHavingSameNameButDifferentCasing source, string newFullname, string newFullName)
             {
-                // Arrange
-                var source = Fixture.Create<TypeWithPropertiesHavingSameNameButDifferentCasing>();
-                var newFullname = Fixture.Create<string>();
-                var newFullName = Fixture.Create<string>();
-            
                 // Act
                 var result = source
                     .With(_ => _.Fullname, newFullname)
@@ -408,7 +350,7 @@ namespace Typesafe.With.Tests
                 result.FullName.Should().Be(newFullName);
             }
 
-            private class TypeWithDifferentCasingInConstructor
+            internal class TypeWithDifferentCasingInConstructor
             {
                 public string SSN { get; }
 
@@ -418,27 +360,26 @@ namespace Typesafe.With.Tests
                 }
             }
         
-            [Fact]
-            public void Can_set_property_which_has_different_casing_in_the_constructor()
+            [Theory, AutoData]
+            internal void Can_set_property_which_has_different_casing_in_the_constructor(TypeWithDifferentCasingInConstructor source, string newValue)
             {
-                // Arrange
-                var source = Fixture.Create<TypeWithDifferentCasingInConstructor>();
-                var newValue = Fixture.Create<string>();
-                
                 // Act
                 var result = source.With(_ => _.SSN, newValue);
 
                 // Assert
                 result.SSN.Should().Be(newValue, because: "the property is set via constructor");
             }
-            
-            [Fact]
-            public void Calling_With_creates_a_new_instance()
+
+            internal class TypeCreatesNewInstance
             {
-                // Arrange
-                var source = Fixture.Create<SourceWithSetters>();
-                var newValue = Fixture.Create<string>();
-                
+                public string Id { get; }
+
+                public TypeCreatesNewInstance(string id) => Id = id;
+            }
+            
+            [Theory, AutoData]
+            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
+            {
                 // Act
                 var result = source.With(s => s.Id, newValue);
 
