@@ -78,6 +78,43 @@ namespace Typesafe.Merge.Tests
             }
 
             [Fact]
+            public void Merge_works_with_nullable_types()
+            {
+                int? destinationValue = 1;
+                int? expectedValue = 1;
+                
+                // Arrange
+                var source = new Container<int?> {Value = null};
+                var destination = new Container<int?> {Value = destinationValue};
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<Container<int?>>();
+                result.Value.Should().Be(expectedValue);
+            }
+
+            [Fact]
+            public void Merge_does_not_use_null_value_from_right_side()
+            {
+                int? sourceValue = 1;
+                int? destinationValue = null;
+                int? expectedValue = 1;
+                
+                // Arrange
+                var source = new Container<int?> {Value = sourceValue};
+                var destination = new Container<int?> {Value = destinationValue};
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<Container<int?>>();
+                result.Value.Should().Be(expectedValue);
+            }
+
+            [Fact]
             public void Calling_Merge_creates_a_new_instance()
             {
                 // Arrange
