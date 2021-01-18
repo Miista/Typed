@@ -41,8 +41,8 @@ namespace Typesafe.Merge.Tests
             }
             
             [Theory]
-            [MemberData(nameof(With_works_with_any_type_Data))]
-            public void With_works_with_any_type<T>(T sourceValue, T destinationValue, T expectedValue)
+            [MemberData(nameof(Merge_works_with_any_type_Data))]
+            public void Merge_works_with_any_type<T>(T sourceValue, T destinationValue, T expectedValue)
             {
                 // Arrange
                 var source = new Container<T> {Value = sourceValue};
@@ -57,7 +57,7 @@ namespace Typesafe.Merge.Tests
             }
 
             // ReSharper disable once InconsistentNaming
-            public static IEnumerable<object[]> With_works_with_any_type_Data
+            public static IEnumerable<object[]> Merge_works_with_any_type_Data
             {
                 get
                 {
@@ -359,10 +359,10 @@ namespace Typesafe.Merge.Tests
                 var result = left.Merge<SourceWithConstructorAndMissingProperties, SourceWithConstructorAndMissingProperties, DestinationWithConstructorAndMissingProperties>(right);
             
                 // Assert
-                result.Id.Should().Be(right.Id);
-                result.Age.Should().Be(left.Age);
-                result.Name.Should().Be(left.Name);
-                result.Birthdate.Should().Be(left.Birthdate);
+                result.Id.Should().Be(right.Id, because: "there is no value on the right side");
+                result.Age.Should().Be(left.Age, because: "there is no value on the right side");
+                result.Name.Should().Be(left.Name, because: "there is no value on the right side");
+                result.Birthdate.Should().Be(left.Birthdate, because: "there is no value on the right side");
             }
         }
 
