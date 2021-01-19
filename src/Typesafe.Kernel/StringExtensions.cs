@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 namespace Typesafe.Kernel
 {
@@ -8,6 +9,8 @@ namespace Typesafe.Kernel
         {
             if (s == null) throw new ArgumentNullException(nameof(s));
 
+            if (s.All(char.IsUpper)) return s.ToLowerInvariant();
+            
             var firstLetterInLowercase = char.ToLowerInvariant(s[0]);
             var remainingString = s.Substring(1);
 

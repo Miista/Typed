@@ -6,6 +6,46 @@ using Typesafe.Kernel;
 
 namespace Typesafe.With
 {
+    internal class WithValueResolver<T> : IValueResolver<T>
+    {
+        private readonly IReadOnlyDictionary<string, object> _values;
+
+        public WithValueResolver(T instance, string propertyName, object propertyValue)
+        {
+            _values = typeof(T)
+                ?.GetProperties()
+                ?.Select(info =>
+                {
+                    var value = string.Equals(propertyName, info.Name.ToParameterCase()) ? propertyValue : info.GetValue(instance);
+                    
+                    return new KeyValuePair<string, object>(info.Name.ToParameterCase(), value);
+                })
+                ?.ToDictionary(pair => pair.Key, pair => pair.Value);
+        }
+        public object Resolve(string parameterName)
+        {
+            var x = parameterName.ToParameterCase();
+            var y = parameterName.ToPropertyCase();
+            
+            if (_values.TryGetValue(parameterName, out var valueByExactMatch))
+            {
+                return valueByExactMatch;
+            }
+
+            if (_values.TryGetValue(parameterName.ToParameterCase(), out var valueByParameterCase))
+            {
+                return valueByParameterCase;
+            }
+
+            if (_values.TryGetValue(parameterName.ToLowerInvariant(), out var valueByLowercased))
+            {
+                return valueByLowercased;
+            }
+
+            throw new Exception();
+        }
+    }
+    
     public static class ObjectExtensions
     {
         public static T With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, TProperty propertyValue)
@@ -20,6 +60,10 @@ namespace Typesafe.With
             };
 
             Validate<T>(propertyName);
+
+            var valueResolver = new WithValueResolver<T>(instance, propertyName, propertyValue);
+            var instanceBuilder = new InstanceBuilder<T>(valueResolver);
+            return instanceBuilder.Create();
             
             var constructor = TypeUtils.GetSuitableConstructor<T>();
             var builder = new UnifiedWithBuilder<T>(constructor);
