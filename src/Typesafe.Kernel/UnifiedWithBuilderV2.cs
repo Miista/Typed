@@ -23,10 +23,10 @@ namespace Typesafe.Kernel
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
             // 1. Construct instance of T (and set properties via constructor)
-            var (constructedInstance, remainingPropertiesAfterCtor) = ConstructInstance(instance, properties, _constructorInfo);
+            var (constructedInstance, remainingPropertiesAfterCtor) = ConstructInstance(instance, properties, _constructorInfo, _valueResolver);
             
             // 2. Set new properties via property setters
-            var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor);
+            var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor, _valueResolver);
 
             if (remainingPropertiesAfterPropSet.Count != 0)
             {
@@ -51,7 +51,8 @@ namespace Typesafe.Kernel
         /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) EnrichByProperty<TInstance>(
             TInstance instance,
-            IReadOnlyDictionary<string, object> newProperties)
+            IReadOnlyDictionary<string, object> newProperties,
+            IValueResolver<T> valueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
             var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
@@ -118,7 +119,8 @@ namespace Typesafe.Kernel
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) ConstructInstance<TInstance>(
             TInstance instance,
             IReadOnlyDictionary<string, object> newProperties,
-            ConstructorInfo constructorInfo)
+            ConstructorInfo constructorInfo,
+            IValueResolver<T> valueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
 
