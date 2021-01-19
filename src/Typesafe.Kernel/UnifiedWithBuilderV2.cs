@@ -100,20 +100,19 @@ namespace Typesafe.Kernel
             }
             
             // Remove properties set via constructor
-            foreach (var parameter in GetConstructorParameterNames())
+            foreach (var parameter in GetConstructorParameterNames(constructorInfo))
             {
                 publicProperties.Remove(parameter);
             }
 
             return publicProperties.Values.Where(info => info.CanWrite);
-            
-            IEnumerable<string> GetConstructorParameterNames()
-            {
-                return constructorInfo
-                    .GetParameters()
-                    .Select(parameterInfo => parameterInfo.Name)
-                    .ToList();
-            }
+        }
+
+        private static IEnumerable<string> GetConstructorParameterNames(ConstructorInfo constructorInfo)
+        {
+            return constructorInfo.GetParameters()
+                .Select(parameterInfo => parameterInfo.Name)
+                .ToList();
         }
 
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) ConstructInstance<TInstance>(
@@ -129,7 +128,7 @@ namespace Typesafe.Kernel
 
             foreach (var parameter in constructorInfo.GetParameters())
             {
-                var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
+                var (existingProperty, propertyName) = TryFindExistingProperty(parameter, existingProperties);
                 var originalValue = existingProperty?.GetValue(instance);
                 var hasNewValue = newProperties.TryGetValue(propertyName, out var newValue);
                 var value = hasNewValue ? newValue : originalValue;
@@ -143,24 +142,24 @@ namespace Typesafe.Kernel
                 : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
 
             return (constructedInstance, remainingProperties);
-            
-            (PropertyInfo ExistingProperty, string PropertyName) TryFindExistingProperty(ParameterInfo parameterInfo)
+        }
+
+        private static (PropertyInfo ExistingProperty, string PropertyName) TryFindExistingProperty(
+            ParameterInfo parameterInfo,
+            IDictionary<string, PropertyInfo> existingProperties)
+        {
+            // Can we find a matching constructor parameter?
+            if (existingProperties.TryGetValue(parameterInfo.Name, out var existingPropertyByExactMatch))
             {
-                // Can we find a matching constructor parameter?
-                if (existingProperties.TryGetValue(parameterInfo.Name, out var existingPropertyByExactMatch))
-                {
-                    return (existingPropertyByExactMatch, parameterInfo.Name);
-                }
-
-                // Can we find a matching constructor parameter if we lowercase both parameter and property name?
-                var existingPropertyKey =
-                    existingProperties.Keys.FirstOrDefault(key => string.Equals(key, parameterInfo.Name, StringComparison.InvariantCultureIgnoreCase))
-                    ?? throw new InvalidOperationException($"Cannot find property for constructor parameter '{parameterInfo.Name}'.");
-
-                var existingPropertyByLowercaseMatch = existingProperties[existingPropertyKey];
-                
-                return (existingPropertyByLowercaseMatch, existingPropertyKey);
+                return (existingPropertyByExactMatch, parameterInfo.Name);
             }
+
+            // Can we find a matching constructor parameter if we lowercase both parameter and property name?
+            var existingPropertyKey = existingProperties.Keys.FirstOrDefault(key => string.Equals(key, parameterInfo.Name, StringComparison.InvariantCultureIgnoreCase)) ?? throw new InvalidOperationException($"Cannot find property for constructor parameter '{parameterInfo.Name}'.");
+
+            var existingPropertyByLowercaseMatch = existingProperties[existingPropertyKey];
+
+            return (existingPropertyByLowercaseMatch, existingPropertyKey);
         }
     }
 }
