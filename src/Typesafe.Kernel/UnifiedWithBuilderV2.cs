@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Typesafe.Kernel;
 
 namespace Typesafe.Kernel
 {
@@ -23,7 +22,7 @@ namespace Typesafe.Kernel
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
             // 1. Construct instance of T (and set properties via constructor)
-            var (constructedInstance, remainingPropertiesAfterCtor) = ConstructInstance(instance, properties, _constructorInfo, _valueResolver);
+            var (constructedInstance, remainingPropertiesAfterCtor) = ConstructInstance<T>(properties, _valueResolver);
             
             // 2. Set new properties via property setters
             var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor, _valueResolver);
@@ -35,16 +34,17 @@ namespace Typesafe.Kernel
             
             // 3. Copy remaining properties
             var copyProperties = GetCopyProperties(_constructorInfo, properties);
-            var enrichedInstanceWithCopiedProperties = CopyProperties(instance, enrichedInstance, copyProperties);
+            var enrichedInstanceWithCopiedProperties = CopyProperties(enrichedInstance, copyProperties, _valueResolver);
             
             return enrichedInstanceWithCopiedProperties;
         }
-        
+
         /// <summary>
         /// Mutates <paramref name="instance"/>, setting all properties in <paramref name="newProperties"/>.
         /// </summary>
         /// <param name="instance">The instance to mutate.</param>
         /// <param name="newProperties">The properties to set.</param>
+        /// <param name="valueResolver">The value resolver.</param>
         /// <typeparam name="TInstance">The instance type.</typeparam>
         /// <returns>A mutated instance.</returns>
         /// <exception cref="InvalidOperationException">If the property does not exist or cannot be written to.</exception>
@@ -68,19 +68,20 @@ namespace Typesafe.Kernel
                 {
                     throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
                 }
-                
-                existingProperty.SetValue(instance, property.Value);
+
+                var value = valueResolver.Resolve(property.Key);
+                existingProperty.SetValue(instance, value);
                 remainingProperties.Remove(property.Key);
             }
 
             return (instance, remainingProperties);
         }
         
-        private static T CopyProperties(T source, T destination, IEnumerable<PropertyInfo> properties)
+        private static T CopyProperties(T destination, IEnumerable<PropertyInfo> properties, IValueResolver<T> valueResolver)
         {
             foreach (var kvp in properties)
             {
-                var value = kvp.GetValue(source);
+                var value = valueResolver.Resolve(kvp.Name);
                 kvp.SetValue(destination, value);
             }
 
@@ -116,50 +117,29 @@ namespace Typesafe.Kernel
         }
 
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) ConstructInstance<TInstance>(
-            TInstance instance,
             IReadOnlyDictionary<string, object> newProperties,
-            ConstructorInfo constructorInfo,
             IValueResolver<T> valueResolver)
         {
-            var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
+            var constructorParameters = typeof(TInstance)
+                                            ?.GetConstructors()
+                                            ?.OrderByDescending(info => info.GetParameters().Length)
+                                            ?.FirstOrDefault()
+                                            ?.GetParameters()
+                                        ?? new ParameterInfo[0];
 
             var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
-            var parameters = new List<object>();
-
-            foreach (var parameter in constructorInfo.GetParameters())
+            var constructorParameterValues = new List<object>();
+            
+            foreach (var constructorParameter in constructorParameters)
             {
-                var (existingProperty, propertyName) = TryFindExistingProperty(parameter, existingProperties);
-                var originalValue = existingProperty?.GetValue(instance);
-                var hasNewValue = newProperties.TryGetValue(propertyName, out var newValue);
-                var value = hasNewValue ? newValue : originalValue;
-                
-                parameters.Add(value);
-                remainingProperties.Remove(propertyName);
+                var parameterValue = valueResolver.Resolve(constructorParameter.Name);
+                constructorParameterValues.Add(parameterValue);
+                remainingProperties.Remove(constructorParameter.Name);
             }
 
-            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance
-                ? (TInstance) constructorInfo.Invoke(parameters.ToArray())
-                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
+            if (Activator.CreateInstance(typeof(TInstance), constructorParameterValues.ToArray()) is TInstance instance) return (instance, remainingProperties);
 
-            return (constructedInstance, remainingProperties);
-        }
-
-        private static (PropertyInfo ExistingProperty, string PropertyName) TryFindExistingProperty(
-            ParameterInfo parameterInfo,
-            IDictionary<string, PropertyInfo> existingProperties)
-        {
-            // Can we find a matching constructor parameter?
-            if (existingProperties.TryGetValue(parameterInfo.Name, out var existingPropertyByExactMatch))
-            {
-                return (existingPropertyByExactMatch, parameterInfo.Name);
-            }
-
-            // Can we find a matching constructor parameter if we lowercase both parameter and property name?
-            var existingPropertyKey = existingProperties.Keys.FirstOrDefault(key => string.Equals(key, parameterInfo.Name, StringComparison.InvariantCultureIgnoreCase)) ?? throw new InvalidOperationException($"Cannot find property for constructor parameter '{parameterInfo.Name}'.");
-
-            var existingPropertyByLowercaseMatch = existingProperties[existingPropertyKey];
-
-            return (existingPropertyByLowercaseMatch, existingPropertyKey);
+            throw new InvalidOperationException($"Cannot construct instance of type '{typeof(T).Name}'.");
         }
     }
 }

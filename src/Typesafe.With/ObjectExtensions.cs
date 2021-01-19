@@ -66,9 +66,9 @@ namespace Typesafe.With
             var instanceBuilder = new UnifiedWithBuilderV2<T>(constructor, valueResolver);
             return instanceBuilder.Construct(instance, properties);
             
-            var builder = new UnifiedWithBuilder<T>(constructor);
-            
-            return builder.Construct(instance, properties);
+            // var builder = new UnifiedWithBuilder<T>(constructor);
+            //
+            // return builder.Construct(instance, properties);
         }
 
         private static void Validate<T>(string propertyName)
