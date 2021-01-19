@@ -62,10 +62,10 @@ namespace Typesafe.With
             Validate<T>(propertyName);
 
             var valueResolver = new WithValueResolver<T>(instance, propertyName, propertyValue);
-            var instanceBuilder = new InstanceBuilder<T>(valueResolver);
-            return instanceBuilder.Create();
-            
             var constructor = TypeUtils.GetSuitableConstructor<T>();
+            var instanceBuilder = new UnifiedWithBuilderV2<T>(constructor, valueResolver);
+            return instanceBuilder.Construct(instance, properties);
+            
             var builder = new UnifiedWithBuilder<T>(constructor);
             
             return builder.Construct(instance, properties);
