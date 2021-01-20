@@ -5,7 +5,7 @@ using Typesafe.Kernel;
 
 namespace Typesafe.Merge
 {
-    internal class ValueResolver<TLeft, TRight>
+    internal class ValueResolver<TDestination, TLeft, TRight>
     {
         private readonly TLeft _leftInstance;
         private readonly TRight _rightInstance;
