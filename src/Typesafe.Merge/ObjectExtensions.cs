@@ -40,10 +40,11 @@ namespace Typesafe.Merge
         {
             if (left == null) throw new ArgumentNullException(nameof(left));
             if (right == null) throw new ArgumentNullException(nameof(right));
-        
-            var builder = new UnifiedMergeBuilder();
+
+            var valueResolver = new ValueResolver<TDestination, TLeft, TRight>(left, right);
+            var instanceBuilder = new InstanceBuilderV2<TDestination>(valueResolver);
             
-            return builder.Construct<TDestination, TLeft, TRight>(left, right);
+            return instanceBuilder.Construct();
         }
     }
 }
