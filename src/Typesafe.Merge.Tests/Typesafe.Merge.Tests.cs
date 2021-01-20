@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AutoFixture;
+using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
 
@@ -415,26 +416,54 @@ namespace Typesafe.Merge.Tests
                 public int Age { get; set; }
             }
 
-            internal class Destination
+            private class Destination
             {
                 public string Name { get; set; }
                 public int Age { get; set; }
             }
             
-            [Fact]
-            public void Can_merge_to_a_third_destination_type()
+            [Theory, AutoData]
+            internal void Can_merge_to_a_third_destination_type(LeftSide leftSide, RightSide rightSide)
             {
-                // Arrange
-                var left = new LeftSide {Name = "Test"};
-                var right = new RightSide {Age = 10};
-                
                 // Act
-                var result = left.Merge<Destination, LeftSide, RightSide>(right);
+                var result = leftSide.Merge<Destination, LeftSide, RightSide>(rightSide);
 
                 // Assert
                 result.Should().NotBeNull();
-                result.Name.Should().Be(left.Name);
-                result.Age.Should().Be(right.Age);
+                result.Name.Should().Be(leftSide.Name);
+                result.Age.Should().Be(rightSide.Age);
+            }
+
+            private class DestinationWithUnmappedProperty : Destination
+            {
+                public string Text { get; set; }
+            }
+            
+            [Theory, AutoData]
+            internal void Can_merge_to_a_third_destination_type_having_unmapped_property(LeftSide leftSide, RightSide rightSide)
+            {
+                // Act
+                var result = leftSide.Merge<DestinationWithUnmappedProperty, LeftSide, RightSide>(rightSide);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(leftSide.Name);
+                result.Age.Should().Be(rightSide.Age);
+                result.Text.Should().Be(default(string));
+            }
+
+            private class DestinationWithoutAnyProperties
+            {
+            }
+            
+            [Theory, AutoData]
+            internal void Ignores_properties_not_on_the_destination(LeftSide leftSide, RightSide rightSide)
+            {
+                // Act
+                var result = leftSide.Merge<DestinationWithoutAnyProperties, LeftSide, RightSide>(rightSide);
+                
+                // Assert
+                result.Should().NotBeNull();
             }
         }
         

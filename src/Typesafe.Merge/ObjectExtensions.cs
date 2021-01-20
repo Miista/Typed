@@ -1,4 +1,5 @@
 ﻿using System;
+using Typesafe.Kernel;
 
 namespace Typesafe.Merge
 {
@@ -18,9 +19,10 @@ namespace Typesafe.Merge
             if (left == null) throw new ArgumentNullException(nameof(left));
             if (right == null) throw new ArgumentNullException(nameof(right));
 
-            var builder = new UnifiedMergeBuilder();
+            var valueResolver = new ValueResolver<T, T, T>(left, right);
+            var instanceBuilder = new InstanceBuilderV2<T>(valueResolver);
             
-            return builder.Construct<T, T, T>(left, right);
+            return instanceBuilder.Construct();
         }
         
         /// <summary>
