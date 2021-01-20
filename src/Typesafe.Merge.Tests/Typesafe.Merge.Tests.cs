@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using AutoFixture;
 using AutoFixture.Xunit2;
@@ -7,31 +8,51 @@ using Xunit;
 
 namespace Typesafe.Merge.Tests
 {
-    internal class TypeWithConstructor
+    public class TestData : IEnumerable<object[]>
     {
-        public string Id { get; }
-        public string Name { get; }
-        public int? Age { get; }
+        public IEnumerator<object[]> GetEnumerator()
+        {
+            yield return new object[]{null, null, null, null, null, null, null, null, null};
+            yield return new object[]{null, null, 1,    null, null, null, null, null, 1};
+            yield return new object[]{null, "1",  null, null, null, null, null, "1",  null};
+            yield return new object[]{null, "1",  1,    null, null, null, null, "1",  1};
+            yield return new object[]{"1",  null, null, null, null, null, "1",  null, null};
+            yield return new object[]{"1",  null, 1,    null, null, null, "1",  null, 1};
+            yield return new object[]{"1",  "1",  null, null, null, null, "1",  "1",  null};
+            yield return new object[]{"1",  "1",  1,    null, null, null, "1",  "1",  1};
+            yield return new object[]{null, null, null, null, null, 2,    null, null, 2};
+            yield return new object[]{null, null, null, null, "2",  null, null, "2",  null};
+            yield return new object[]{null, null, null, null, "2",  2,    null, "2",  2};
+            yield return new object[]{null, null, null, "2",  null, null, "2",  null, null};
+            yield return new object[]{null, null, null, "2",  null, 2,    "2",  null, 2};
+            yield return new object[]{null, null, null, "2",  "2",  null, "2",  "2",  null};
+            yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{null, null, 1,    null, null, 2,    null, null, 2};
+            yield return new object[]{null, "1",  null, null, "2",  null, null, "2",  null};
+            yield return new object[]{null, "1",  1,    null, "2",  2,    null, "2",  2};
+            yield return new object[]{"1",  null, null, "2",  null, null, "2",  null, null};
+            yield return new object[]{"1",  null, 1,    "2",  null, 2,    "2",  null, 2};
+            yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{"1",  "1",  1,    null, null, null, "1",  "1",  1};
+            yield return new object[]{"1",  "1",  1,    null, null, 2,    "1",  "1",  2};
+            yield return new object[]{"1",  "1",  1,    null, "2",  null, "1",  "2",  1};
+            yield return new object[]{"1",  "1",  1,    null, "2",  2,    "1",  "2",  2};
+            yield return new object[]{"1",  "1",  1,    "2",  null, null, "2",  "1",  1};
+            yield return new object[]{"1",  "1",  1,    "2",  null, 2,    "2",  "1",  2};
+            yield return new object[]{"1",  "1",  1,    "2",  "2",  null, "2",  "2",  1};
+            yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{null, null, 1,    "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{null, "1", null,  "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{null, "1", 1,     "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{"1",  null, null, "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{"1",  null, 1,    "2",  "2",  2,    "2",  "2",  2};
+            yield return new object[]{"1",  "1",  null, "2",  "2",  2,    "2",  "2",  2};
+        }
 
-        public TypeWithConstructor(string id, string name, int? age) => (Id, Name, Age) = (id, name, age);
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
     
-    internal class TypeWithPropertySetters
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-        public int? Age { get; set; }
-    }
-    
-    internal class TypeWithConstructorAndPropertySetters
-    {
-        public string Id { get; }
-        public string Name { get; set; }
-        public int? Age { get; set; }
-
-        public TypeWithConstructorAndPropertySetters(string id, string name) => (Id, Name) = (id, name);
-    }
-
     public class Tests
     {
         public class General
@@ -115,199 +136,232 @@ namespace Typesafe.Merge.Tests
                 result.Value.Should().Be(expectedValue);
             }
 
-            [Fact]
-            public void Calling_Merge_creates_a_new_instance()
+            internal class TypeCreatesNewInstance
+            {
+                public string Id { get; }
+
+                public TypeCreatesNewInstance(string id) => Id = id;
+            }
+            
+            [Theory, AutoData]
+            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, TypeCreatesNewInstance destination)
+            {
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().NotBe(destination);
+                result.Should().NotBe(source);
+                result.GetHashCode().Should().NotBe(source.GetHashCode());
+            }
+        }
+
+        public class ReferenceTypes
+        {
+            internal class TypeWithConstructor
+            {
+                public string Id { get; }
+                public string Name { get; }
+                public int? Age { get; }
+
+                public TypeWithConstructor(string id, string name, int? age) => (Id, Name, Age) = (id, name, age);
+            }
+    
+            internal class TypeWithPropertySetters
+            {
+                public string Id { get; set; }
+                public string Name { get; set; }
+                public int? Age { get; set; }
+            }
+    
+            internal class TypeWithConstructorAndPropertySetters
+            {
+                public string Id { get; }
+                public string Name { get; set; }
+                public int? Age { get; set; }
+
+                public TypeWithConstructorAndPropertySetters(string id, string name) => (Id, Name) = (id, name);
+            }
+            
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_type_with_property_setters(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
             {
                 // Arrange
-                var source = new TypeWithPropertySetters();
-                var destination = new TypeWithPropertySetters();
+                var source = new TypeWithPropertySetters
+                {
+                    Id = sourceId,
+                    Name = sourceName,
+                    Age = sourceAge
+                };
+                var destination = new TypeWithPropertySetters
+                {
+                    Id = withId,
+                    Name = withName,
+                    Age = withAge
+                };
+                
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<TypeWithPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_type_with_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new TypeWithConstructor(sourceId, sourceName, sourceAge);
+                var destination = new TypeWithConstructor(withId, withName, withAge);
 
                 // Act
                 var result = source.Merge(destination);
 
                 // Assert
-                result.GetHashCode().Should().NotBe(source.GetHashCode());
+                result.Should().BeOfType<TypeWithConstructor>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_type_with_property_setter_and_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new TypeWithConstructorAndPropertySetters(sourceId, sourceName) {Age = sourceAge};
+                var destination = new TypeWithConstructorAndPropertySetters(withId, withName) {Age = withAge};
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<TypeWithConstructorAndPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+                
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_property_to_property(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new TypeWithPropertySetters
+                {
+                    Id = sourceId,
+                    Age = sourceAge,
+                    Name = sourceName
+                };
+                var destination = new TypeWithPropertySetters
+                {
+                    Id = destinationId,
+                    Age = destinationAge,
+                    Name = destinationName
+                };
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<TypeWithPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_constructor_to_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new TypeWithConstructor(sourceId, sourceName, sourceAge);
+                var destination = new TypeWithConstructor(destinationId, destinationName, destinationAge);
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<TypeWithConstructor>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_property_to_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new TypeWithPropertySetters
+                {
+                    Id = sourceId,
+                    Age = sourceAge,
+                    Name = sourceName
+                };
+                var destination = new TypeWithConstructor(destinationId, destinationName, destinationAge);
+
+                // Act
+                var result = source.Merge<TypeWithConstructor, TypeWithPropertySetters, TypeWithConstructor>(destination);
+
+                // Assert
+                result.Should().BeOfType<TypeWithConstructor>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_constructor_to_property(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new TypeWithConstructor(sourceId, sourceName, sourceAge);
+                var destination = new TypeWithPropertySetters
+                {
+                    Id = destinationId,
+                    Age = destinationAge,
+                    Name = destinationName
+                };
+
+                // Act
+                var result = source.Merge<TypeWithPropertySetters, TypeWithConstructor, TypeWithPropertySetters>(destination);
+
+                // Assert
+                result.Should().BeOfType<TypeWithPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
             }
         }
-
-        [Theory]
-        [MemberData(nameof(TestData))]
-        public void Can_merge_type_with_property_setters(
-            string sourceId, string sourceName, int? sourceAge,
-            string withId, string withName, int? withAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new TypeWithPropertySetters
-            {
-                Id = sourceId,
-                Name = sourceName,
-                Age = sourceAge
-            };
-            var destination = new TypeWithPropertySetters
-            {
-                Id = withId,
-                Name = withName,
-                Age = withAge
-            };
-            
-            // Act
-            var result = source.Merge(destination);
-
-            // Assert
-            result.Should().BeOfType<TypeWithPropertySetters>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestData))]
-        public void Can_merge_type_with_constructor(
-            string sourceId, string sourceName, int? sourceAge,
-            string withId, string withName, int? withAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new TypeWithConstructor(sourceId, sourceName, sourceAge);
-            var destination = new TypeWithConstructor(withId, withName, withAge);
-
-            // Act
-            var result = source.Merge(destination);
-
-            // Assert
-            result.Should().BeOfType<TypeWithConstructor>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestData))]
-        public void Can_merge_type_with_property_setter_and_constructor(
-            string sourceId, string sourceName, int? sourceAge,
-            string withId, string withName, int? withAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new TypeWithConstructorAndPropertySetters(sourceId, sourceName) {Age = sourceAge};
-            var destination = new TypeWithConstructorAndPropertySetters(withId, withName) {Age = withAge};
-
-            // Act
-            var result = source.Merge(destination);
-
-            // Assert
-            result.Should().BeOfType<TypeWithConstructorAndPropertySetters>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-            
-        }
-
-        [Theory]
-        [MemberData(nameof(TestData))]
-        public void Can_merge_from_property_to_property(
-            string sourceId, string sourceName, int? sourceAge,
-            string destinationId, string destinationName, int? destinationAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new TypeWithPropertySetters
-            {
-                Id = sourceId,
-                Age = sourceAge,
-                Name = sourceName
-            };
-            var destination = new TypeWithPropertySetters
-            {
-                Id = destinationId,
-                Age = destinationAge,
-                Name = destinationName
-            };
-
-            // Act
-            var result = source.Merge(destination);
-
-            // Assert
-            result.Should().BeOfType<TypeWithPropertySetters>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestData))]
-        public void Can_merge_from_constructor_to_constructor(
-            string sourceId, string sourceName, int? sourceAge,
-            string destinationId, string destinationName, int? destinationAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new TypeWithConstructor(sourceId, sourceName, sourceAge);
-            var destination = new TypeWithConstructor(destinationId, destinationName, destinationAge);
-
-            // Act
-            var result = source.Merge(destination);
-
-            // Assert
-            result.Should().BeOfType<TypeWithConstructor>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestData))]
-        public void Can_merge_from_property_to_constructor(
-            string sourceId, string sourceName, int? sourceAge,
-            string destinationId, string destinationName, int? destinationAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new TypeWithPropertySetters
-            {
-                Id = sourceId,
-                Age = sourceAge,
-                Name = sourceName
-            };
-            var destination = new TypeWithConstructor(destinationId, destinationName, destinationAge);
-
-            // Act
-            var result = source.Merge<TypeWithConstructor, TypeWithPropertySetters, TypeWithConstructor>(destination);
-
-            // Assert
-            result.Should().BeOfType<TypeWithConstructor>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestData))]
-        public void Can_merge_from_constructor_to_property(
-            string sourceId, string sourceName, int? sourceAge,
-            string destinationId, string destinationName, int? destinationAge,
-            string expectedId, string expectedName, int? expectedAge)
-        {
-            // Arrange
-            var source = new TypeWithConstructor(sourceId, sourceName, sourceAge);
-            var destination = new TypeWithPropertySetters
-            {
-                Id = destinationId,
-                Age = destinationAge,
-                Name = destinationName
-            };
-
-            // Act
-            var result = source.Merge<TypeWithPropertySetters, TypeWithConstructor, TypeWithPropertySetters>(destination);
-
-            // Assert
-            result.Should().BeOfType<TypeWithPropertySetters>();
-            result.Age.Should().Be(expectedAge);
-            result.Id.Should().Be(expectedId);
-            result.Name.Should().Be(expectedName);
-        }
-
+        
         public class PartialProperties
         {
             internal class SourceWithPropertiesAndMissingProperties
@@ -466,49 +520,6 @@ namespace Typesafe.Merge.Tests
                 result.Should().NotBeNull();
             }
         }
-        
-        public static IEnumerable<object[]> TestData
-        {
-            get
-            {
-                yield return new object[]{null, null, null, null, null, null, null, null, null};
-                yield return new object[]{null, null, 1,    null, null, null, null, null, 1};
-                yield return new object[]{null, "1",  null, null, null, null, null, "1",  null};
-                yield return new object[]{null, "1",  1,    null, null, null, null, "1",  1};
-                yield return new object[]{"1",  null, null, null, null, null, "1",  null, null};
-                yield return new object[]{"1",  null, 1,    null, null, null, "1",  null, 1};
-                yield return new object[]{"1",  "1",  null, null, null, null, "1",  "1",  null};
-                yield return new object[]{"1",  "1",  1,    null, null, null, "1",  "1",  1};
-                yield return new object[]{null, null, null, null, null, 2,    null, null, 2};
-                yield return new object[]{null, null, null, null, "2",  null, null, "2",  null};
-                yield return new object[]{null, null, null, null, "2",  2,    null, "2",  2};
-                yield return new object[]{null, null, null, "2",  null, null, "2",  null, null};
-                yield return new object[]{null, null, null, "2",  null, 2,    "2",  null, 2};
-                yield return new object[]{null, null, null, "2",  "2",  null, "2",  "2",  null};
-                yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, null, 1,    null, null, 2,    null, null, 2};
-                yield return new object[]{null, "1",  null, null, "2",  null, null, "2",  null};
-                yield return new object[]{null, "1",  1,    null, "2",  2,    null, "2",  2};
-                yield return new object[]{"1",  null, null, "2",  null, null, "2",  null, null};
-                yield return new object[]{"1",  null, 1,    "2",  null, 2,    "2",  null, 2};
-                yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  "1",  1,    null, null, null, "1",  "1",  1};
-                yield return new object[]{"1",  "1",  1,    null, null, 2,    "1",  "1",  2};
-                yield return new object[]{"1",  "1",  1,    null, "2",  null, "1",  "2",  1};
-                yield return new object[]{"1",  "1",  1,    null, "2",  2,    "1",  "2",  2};
-                yield return new object[]{"1",  "1",  1,    "2",  null, null, "2",  "1",  1};
-                yield return new object[]{"1",  "1",  1,    "2",  null, 2,    "2",  "1",  2};
-                yield return new object[]{"1",  "1",  1,    "2",  "2",  null, "2",  "2",  1};
-                yield return new object[]{"1",  "1",  1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, null, null, "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, null, 1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, "1", null,  "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{null, "1", 1,     "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  null, null, "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  null, 1,    "2",  "2",  2,    "2",  "2",  2};
-                yield return new object[]{"1",  "1",  null, "2",  "2",  2,    "2",  "2",  2};
-            }
-        }
 
         public class ValueResolvement
         {
@@ -654,6 +665,212 @@ namespace Typesafe.Merge.Tests
 
                 // Assert
                 result.AnotherTargetId.Should().Be(targetId);
+            }
+        }
+        
+        public class Structs
+        {
+            internal struct StructWithConstructor
+            {
+                public string Id { get; }
+                public string Name { get; }
+                public int? Age { get; }
+
+                public StructWithConstructor(string id, string name, int? age) => (Id, Name, Age) = (id, name, age);
+            }
+    
+            internal struct StructWithPropertySetters
+            {
+                public string Id { get; set; }
+                public string Name { get; set; }
+                public int? Age { get; set; }
+            }
+    
+            internal struct StructWithConstructorAndPropertySetters
+            {
+                public string Id { get; }
+                public string Name { get; set; }
+                public int? Age { get; set; }
+
+                public StructWithConstructorAndPropertySetters(string id, string name) => (Id, Name, Age) = (id, name, null);
+            }
+            
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_type_with_property_setters(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new StructWithPropertySetters
+                {
+                    Id = sourceId,
+                    Name = sourceName,
+                    Age = sourceAge
+                };
+                var destination = new StructWithPropertySetters
+                {
+                    Id = withId,
+                    Name = withName,
+                    Age = withAge
+                };
+                
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<StructWithPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_type_with_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new StructWithConstructor(sourceId, sourceName, sourceAge);
+                var destination = new StructWithConstructor(withId, withName, withAge);
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<StructWithConstructor>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_type_with_property_setter_and_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string withId, string withName, int? withAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new StructWithConstructorAndPropertySetters(sourceId, sourceName) {Age = sourceAge};
+                var destination = new StructWithConstructorAndPropertySetters(withId, withName) {Age = withAge};
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<StructWithConstructorAndPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+                
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_property_to_property(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new StructWithPropertySetters
+                {
+                    Id = sourceId,
+                    Age = sourceAge,
+                    Name = sourceName
+                };
+                var destination = new StructWithPropertySetters
+                {
+                    Id = destinationId,
+                    Age = destinationAge,
+                    Name = destinationName
+                };
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<StructWithPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_constructor_to_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new StructWithConstructor(sourceId, sourceName, sourceAge);
+                var destination = new StructWithConstructor(destinationId, destinationName, destinationAge);
+
+                // Act
+                var result = source.Merge(destination);
+
+                // Assert
+                result.Should().BeOfType<StructWithConstructor>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_property_to_constructor(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new StructWithPropertySetters
+                {
+                    Id = sourceId,
+                    Age = sourceAge,
+                    Name = sourceName
+                };
+                var destination = new StructWithConstructor(destinationId, destinationName, destinationAge);
+
+                // Act
+                var result = source.Merge<StructWithConstructor, StructWithPropertySetters, StructWithConstructor>(destination);
+
+                // Assert
+                result.Should().BeOfType<StructWithConstructor>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
+            }
+
+            [Theory]
+            [ClassData(typeof(TestData))]
+            public void Can_merge_from_constructor_to_property(
+                string sourceId, string sourceName, int? sourceAge,
+                string destinationId, string destinationName, int? destinationAge,
+                string expectedId, string expectedName, int? expectedAge)
+            {
+                // Arrange
+                var source = new StructWithConstructor(sourceId, sourceName, sourceAge);
+                var destination = new StructWithPropertySetters
+                {
+                    Id = destinationId,
+                    Age = destinationAge,
+                    Name = destinationName
+                };
+
+                // Act
+                var result = source.Merge<StructWithPropertySetters, StructWithConstructor, StructWithPropertySetters>(destination);
+
+                // Assert
+                result.Should().BeOfType<StructWithPropertySetters>();
+                result.Age.Should().Be(expectedAge);
+                result.Id.Should().Be(expectedId);
+                result.Name.Should().Be(expectedName);
             }
         }
     }
