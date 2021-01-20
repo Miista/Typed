@@ -344,6 +344,38 @@ namespace Typesafe.With.Tests
                         because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
                     .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
             }
+
+            internal class TypeWithWritableProperty
+            {
+                public string Text { get; set; }
+            }
+            
+            [Theory, AutoData]
+            internal void With_does_not_fail_if_property_is_writable(TypeWithWritableProperty source, string newValue)
+            {
+                // Act
+                Func<TypeWithWritableProperty> act = () => source.With(s => s.Text, newValue);
+                
+                // Assert
+                act.Should().NotThrow(because: $"the property '{nameof(TypeWithWritableProperty.Text)}' is writable");
+            }
+
+            internal class TypeWithMatchingConstructorArgument
+            {
+                public string Text { get; }
+
+                public TypeWithMatchingConstructorArgument(string text) => Text = text;
+            }
+            
+            [Theory, AutoData]
+            internal void With_does_not_fail_if_property_has_matching_constructor_argument(TypeWithMatchingConstructorArgument source, string newValue)
+            {
+                // Act
+                Func<TypeWithMatchingConstructorArgument> act = () => source.With(s => s.Text, newValue);
+                
+                // Assert
+                act.Should().NotThrow(because: $"the property '{nameof(TypeWithMatchingConstructorArgument.Text)}' is writable");
+            }
         }
         
         public class Structs
@@ -391,8 +423,10 @@ namespace Typesafe.With.Tests
                 result.Age.Should().Be(2);
             }
             
+            // ReSharper disable once StructCanBeMadeReadOnly
             private struct StructWithNonWritableProperty
             {
+                // ReSharper disable once UnassignedGetOnlyAutoProperty
                 public int Age { get; }
             }
             
