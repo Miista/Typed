@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace Typesafe.Kernel
 {
-    internal class InstanceBuilderV2<T>
+    internal class InstanceBuilder<T>
     {
         private readonly IValueResolver<T> _valueResolver;
 
-        public InstanceBuilderV2(IValueResolver<T> valueResolver)
+        public InstanceBuilder(IValueResolver<T> valueResolver)
         {
             _valueResolver = valueResolver ?? throw new ArgumentNullException(nameof(valueResolver));
         }

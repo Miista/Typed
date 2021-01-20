@@ -20,7 +20,7 @@ namespace Typesafe.Merge
             if (right == null) throw new ArgumentNullException(nameof(right));
 
             var valueResolver = new MergeValueResolver<T, T, T>(left, right);
-            var instanceBuilder = new InstanceBuilderV2<T>(valueResolver);
+            var instanceBuilder = new InstanceBuilder<T>(valueResolver);
             
             return instanceBuilder.Construct();
         }
@@ -42,7 +42,7 @@ namespace Typesafe.Merge
             if (right == null) throw new ArgumentNullException(nameof(right));
 
             var valueResolver = new MergeValueResolver<TDestination, TLeft, TRight>(left, right);
-            var instanceBuilder = new InstanceBuilderV2<TDestination>(valueResolver);
+            var instanceBuilder = new InstanceBuilder<TDestination>(valueResolver);
             
             return instanceBuilder.Construct();
         }

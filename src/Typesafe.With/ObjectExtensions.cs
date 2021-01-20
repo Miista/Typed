@@ -62,7 +62,7 @@ namespace Typesafe.With
 
             var valueResolver = new WithValueResolver<T>(instance, propertyName, propertyValue);
             // var constructor = TypeUtils.GetSuitableConstructor<T>();
-            var instanceBuilder = new InstanceBuilderV2<T>(valueResolver);
+            var instanceBuilder = new InstanceBuilder<T>(valueResolver);
             return instanceBuilder.Construct();
             
             // var builder = new UnifiedWithBuilder<T>(constructor);
