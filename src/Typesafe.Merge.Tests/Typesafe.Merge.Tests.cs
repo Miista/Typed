@@ -668,7 +668,7 @@ namespace Typesafe.Merge.Tests
             }
         }
         
-        public class Structs
+        public class ValueTypes
         {
             internal struct StructWithConstructor
             {

@@ -378,7 +378,7 @@ namespace Typesafe.With.Tests
             }
         }
         
-        public class Structs
+        public class ValueTypes
         {
             private readonly struct StructWithConstructorArgument
             {
