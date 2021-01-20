@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using Typesafe.Kernel;
 
 namespace Typesafe.With
@@ -22,11 +23,9 @@ namespace Typesafe.With
                 })
                 ?.ToDictionary(pair => pair.Key, pair => pair.Value);
         }
+
         public object Resolve(string parameterName)
         {
-            var x = parameterName.ToParameterCase();
-            var y = parameterName.ToPropertyCase();
-            
             if (_values.TryGetValue(parameterName, out var valueByExactMatch))
             {
                 return valueByExactMatch;
@@ -42,7 +41,7 @@ namespace Typesafe.With
                 return valueByLowercased;
             }
 
-            throw new Exception();
+            throw new InvalidOperationException($"Property '{parameterName.ToPropertyCase()}' cannot be set via constructor or property setter.");
         }
     }
     
@@ -62,9 +61,9 @@ namespace Typesafe.With
             Validate<T>(propertyName);
 
             var valueResolver = new WithValueResolver<T>(instance, propertyName, propertyValue);
-            var constructor = TypeUtils.GetSuitableConstructor<T>();
-            var instanceBuilder = new UnifiedWithBuilderV2<T>(constructor, valueResolver);
-            return instanceBuilder.Construct(instance, properties);
+            // var constructor = TypeUtils.GetSuitableConstructor<T>();
+            var instanceBuilder = new UnifiedWithBuilderV2<T>(valueResolver);
+            return instanceBuilder.Construct();
             
             // var builder = new UnifiedWithBuilder<T>(constructor);
             //
@@ -94,7 +93,12 @@ namespace Typesafe.With
 
         private static bool HasConstructorParameter<T>(string propertyName)
         {
-            var constructorParameters = TypeUtils.GetSuitableConstructor<T>().GetParameters();
+            var constructorParameters = typeof(T)
+                                            ?.GetConstructors()
+                                            ?.OrderByDescending(info => info.GetParameters().Length)
+                                            ?.FirstOrDefault()
+                                            ?.GetParameters()
+                                        ?? new ParameterInfo[0];
             
             // Can we find a matching constructor parameter?
             var hasConstructorParameter = constructorParameters

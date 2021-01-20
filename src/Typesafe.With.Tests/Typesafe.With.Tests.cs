@@ -99,46 +99,23 @@ namespace Typesafe.With.Tests
 
         public class General
         {
-            internal class TypeWithoutWritableProperty
+            internal class TypeCreatesNewInstance
             {
-                public string Text { get; }
+                public string Id { get; }
+
+                public TypeCreatesNewInstance(string id) => Id = id;
             }
             
             [Theory, AutoData]
-            internal void With_fails_if_property_is_not_writable(TypeWithoutWritableProperty source, string newValue)
+            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
             {
                 // Act
-                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
-                
-                // Assert
-                act.Should()
-                    .Throw<InvalidOperationException>(
-                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
-                    .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
-            }
-
-            internal class TypeWithoutMatchingConstructorArgument
-            {
-                public string FullName { get; }
-
-                public TypeWithoutMatchingConstructorArgument(string name)
-                {
-                    FullName = name;
-                }
-            }
-        
-            [Theory, AutoData]
-            internal void With_fails_if_property_has_no_matching_constructor_argument(TypeWithoutMatchingConstructorArgument source, string newValue)
-            {
-                // Act
-                Action act = () => source.With(_ => _.FullName, newValue);
+                var result = source.With(s => s.Id, newValue);
 
                 // Assert
-                act.Should()
-                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
-                    .WithMessage("Property '*' cannot be set via constructor or property setter.");
+                result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
-
+            
             private class Container<T>
             {
                 public T Value { get; set; }
@@ -326,6 +303,113 @@ namespace Typesafe.With.Tests
             }
         }
 
+        public class Validation
+        {
+            internal class TypeWithoutMatchingConstructorArgument
+            {
+                public string FullName { get; }
+
+                public TypeWithoutMatchingConstructorArgument(string name)
+                {
+                    FullName = name;
+                }
+            }
+        
+            [Theory, AutoData]
+            internal void With_fails_if_property_has_no_matching_constructor_argument(TypeWithoutMatchingConstructorArgument source, string newValue)
+            {
+                // Act
+                Action act = () => source.With(_ => _.FullName, newValue);
+
+                // Assert
+                act.Should()
+                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
+                    .WithMessage("Property '*' cannot be set via constructor or property setter.");
+            }
+            
+            internal class TypeWithoutWritableProperty
+            {
+                public string Text { get; }
+            }
+            
+            [Theory, AutoData]
+            internal void With_fails_if_property_is_not_writable(TypeWithoutWritableProperty source, string newValue)
+            {
+                // Act
+                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
+                
+                // Assert
+                act.Should()
+                    .Throw<InvalidOperationException>(
+                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
+                    .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
+            }
+        }
+        
+        public class Structs
+        {
+            private readonly struct StructWithConstructorArgument
+            {
+                public int Age { get; }
+
+                public StructWithConstructorArgument(int age)
+                {
+                    Age = age;
+                }
+            }
+            
+            [Fact]
+            public void Supports_struct_with_constructor_argument()
+            {
+                // Arrange
+                var source = new StructWithConstructorArgument(1);
+                
+                // Act
+                var result = source.With(s => s.Age, 2);
+
+                // Assert
+                result.Should().BeOfType<StructWithConstructorArgument>();
+                result.Age.Should().Be(2);
+            }
+            
+            private struct StructWithPropertySetter
+            {
+                public int Age { get; set; }
+            }
+            
+            [Fact]
+            public void Supports_struct_with_property_setter()
+            {
+                // Arrange
+                var source = new StructWithPropertySetter{Age = 1};
+                
+                // Act
+                var result = source.With(s => s.Age, 2);
+
+                // Assert
+                result.Should().BeOfType<StructWithPropertySetter>();
+                result.Age.Should().Be(2);
+            }
+            
+            private struct StructWithNonWritableProperty
+            {
+                public int Age { get; }
+            }
+            
+            [Fact]
+            public void Fails_if_struct_property_cannot_be_written_to()
+            {
+                // Arrange
+                var source = new StructWithNonWritableProperty();
+                
+                // Act
+                Action act = () => source.With(s => s.Age, 2);
+
+                // Assert
+                act.Should().Throw<InvalidOperationException>();
+            }
+        }
+        
         public class Casing
         {
             internal class TypeWithPropertiesHavingSameNameButDifferentCasing
@@ -368,23 +452,6 @@ namespace Typesafe.With.Tests
 
                 // Assert
                 result.SSN.Should().Be(newValue, because: "the property is set via constructor");
-            }
-
-            internal class TypeCreatesNewInstance
-            {
-                public string Id { get; }
-
-                public TypeCreatesNewInstance(string id) => Id = id;
-            }
-            
-            [Theory, AutoData]
-            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
-            {
-                // Act
-                var result = source.With(s => s.Id, newValue);
-
-                // Assert
-                result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
         }
     }
