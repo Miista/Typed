@@ -5,14 +5,14 @@ using Typesafe.Kernel;
 
 namespace Typesafe.Merge
 {
-    internal class ValueResolver<TDestination, TLeft, TRight> : IValueResolver<TDestination>
+    internal class MergeValueResolver<TDestination, TLeft, TRight> : IValueResolver<TDestination>
     {
         private readonly TLeft _leftInstance;
         private readonly TRight _rightInstance;
         private readonly IReadOnlyDictionary<string, PropertyInfo> _leftProperties;
         private readonly IReadOnlyDictionary<string, PropertyInfo> _rightProperties;
 
-        public ValueResolver(TLeft leftInstance, TRight rightInstance)
+        public MergeValueResolver(TLeft leftInstance, TRight rightInstance)
         {
             _leftInstance = leftInstance;
             _rightInstance = rightInstance;

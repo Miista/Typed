@@ -13,7 +13,7 @@ namespace Typesafe.Merge
             where TDestination : class
         {
             var constructorInfo = TypeUtils.GetSuitableConstructor<TDestination>();
-            var valueResolver = new ValueResolver<TDestination, TLeft, TRight>(left, right);
+            var valueResolver = new MergeValueResolver<TDestination, TLeft, TRight>(left, right);
 
             // 1. Create new instance
             var constructedInstance = ConstructInstance<TDestination, TLeft, TRight>(constructorInfo, valueResolver);
@@ -37,7 +37,7 @@ namespace Typesafe.Merge
 
         private static TInstance ConstructInstance<TInstance, TLeft, TRight>(
                 ConstructorInfo constructorInfo,
-                ValueResolver<TInstance, TLeft, TRight> valueResolver) where TInstance : class
+                MergeValueResolver<TInstance, TLeft, TRight> valueResolver) where TInstance : class
         {
             // Resolve parameter values
             var constructorParameters = constructorInfo
