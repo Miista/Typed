@@ -5,11 +5,11 @@ using System.Reflection;
 
 namespace Typesafe.Kernel
 {
-    internal class UnifiedWithBuilderV2<T>
+    internal class InstanceBuilderV2<T>
     {
         private readonly IValueResolver<T> _valueResolver;
 
-        public UnifiedWithBuilderV2(IValueResolver<T> valueResolver)
+        public InstanceBuilderV2(IValueResolver<T> valueResolver)
         {
             _valueResolver = valueResolver ?? throw new ArgumentNullException(nameof(valueResolver));
         }
