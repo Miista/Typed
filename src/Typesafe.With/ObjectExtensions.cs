@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -7,44 +6,6 @@ using Typesafe.Kernel;
 
 namespace Typesafe.With
 {
-    internal class WithValueResolver<T> : IValueResolver<T>
-    {
-        private readonly IReadOnlyDictionary<string, object> _values;
-
-        public WithValueResolver(T instance, string propertyName, object propertyValue)
-        {
-            _values = typeof(T)
-                ?.GetProperties()
-                ?.Select(info =>
-                {
-                    var value = string.Equals(propertyName, info.Name.ToParameterCase()) ? propertyValue : info.GetValue(instance);
-                    
-                    return new KeyValuePair<string, object>(info.Name.ToParameterCase(), value);
-                })
-                ?.ToDictionary(pair => pair.Key, pair => pair.Value);
-        }
-
-        public object Resolve(string parameterName)
-        {
-            if (_values.TryGetValue(parameterName, out var valueByExactMatch))
-            {
-                return valueByExactMatch;
-            }
-
-            if (_values.TryGetValue(parameterName.ToParameterCase(), out var valueByParameterCase))
-            {
-                return valueByParameterCase;
-            }
-
-            if (_values.TryGetValue(parameterName.ToLowerInvariant(), out var valueByLowercased))
-            {
-                return valueByLowercased;
-            }
-
-            throw new InvalidOperationException($"Property '{parameterName.ToPropertyCase()}' cannot be set via constructor or property setter.");
-        }
-    }
-    
     public static class ObjectExtensions
     {
         public static T With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, TProperty propertyValue)
