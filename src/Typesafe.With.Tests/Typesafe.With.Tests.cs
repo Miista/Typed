@@ -115,6 +115,30 @@ namespace Typesafe.With.Tests
                 // Assert
                 result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
+
+            internal class TypeWithDifferentlyOrderedProperties
+            {
+                public string Property1 { get; }
+                public string Property2 { get; }
+
+                public TypeWithDifferentlyOrderedProperties(string property2, string property1) => (Property2, Property1) = (property2, property1);
+            }
+
+            [Theory, AutoData]
+            internal void Order_of_properties_does_not_matter(TypeWithDifferentlyOrderedProperties source, string newValueProperty1, string newValueProperty2)
+            {
+                // Act
+                TypeWithDifferentlyOrderedProperties result = null;
+                Action act = () => result = source
+                    .With(s => s.Property1, newValueProperty1)
+                    .With(s => s.Property2, newValueProperty2);
+                
+                // Assert
+                act.Should().NotThrow();
+                result.Should().NotBeNull();
+                result.Property1.Should().Be(newValueProperty1);
+                result.Property2.Should().Be(newValueProperty2);
+            }
             
             private class Container<T>
             {

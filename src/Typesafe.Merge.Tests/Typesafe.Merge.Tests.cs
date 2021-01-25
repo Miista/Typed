@@ -99,6 +99,37 @@ namespace Typesafe.Merge.Tests
                 }
             }
 
+            internal class TypeWithPropertyOrder_1And2
+            {
+                public string Property1 { get; }
+                public string Property2 { get; }
+
+                public TypeWithPropertyOrder_1And2(string property2, string property1) => (Property2, Property1) = (property2, property1);
+            }
+            
+            internal class TypeWithPropertyOrder_2And1
+            {
+                public string Property2 { get; }
+                public string Property1 { get; }
+
+                public TypeWithPropertyOrder_2And1(string property1, string property2) => (Property1, Property2) = (property1, property2);
+            }
+
+            [Theory, AutoData]
+            internal void Order_of_properties_does_not_matter(TypeWithPropertyOrder_1And2 left, TypeWithPropertyOrder_2And1 right)
+            {
+                // Act
+                TypeWithPropertyOrder_1And2 result = null;
+                Action act = () => result = left
+                    .Merge<TypeWithPropertyOrder_1And2, TypeWithPropertyOrder_1And2, TypeWithPropertyOrder_2And1>(right);
+                
+                // Assert
+                act.Should().NotThrow();
+                result.Should().NotBeNull();
+                result.Property1.Should().Be(right.Property1);
+                result.Property2.Should().Be(right.Property2);
+            }
+            
             [Fact]
             public void Merge_works_with_nullable_types()
             {
