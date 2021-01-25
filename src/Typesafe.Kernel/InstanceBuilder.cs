@@ -17,7 +17,7 @@ namespace Typesafe.Kernel
         public T Construct()
         {
             // 1. Construct instance of T (and set properties via constructor)
-            var constructedInstance = ConstructInstance<T>(_valueResolver);
+            var constructedInstance = ConstructInstance(_valueResolver);
             
             // 2. Set new properties via property setters
             var enrichedInstance = EnrichByProperty(constructedInstance, _valueResolver);
@@ -30,17 +30,14 @@ namespace Typesafe.Kernel
         /// </summary>
         /// <param name="instance">The instance to mutate.</param>
         /// <param name="valueResolver">The value resolver.</param>
-        /// <typeparam name="TInstance">The instance type.</typeparam>
         /// <returns>A mutated instance.</returns>
         /// <exception cref="InvalidOperationException">If the property does not exist or cannot be written to.</exception>
-        private static TInstance EnrichByProperty<TInstance>(
-            TInstance instance,
-            IValueResolver<T> valueResolver)
+        private static T EnrichByProperty(T instance, IValueResolver<T> valueResolver)
         {
             var instanceAsObject = (object) instance;
-            var constructorParameters = GetConstructorParameters<TInstance>().Select(info => info.Name);
+            var constructorParameters = GetConstructorParameters<T>().Select(info => info.Name);
             
-            var publicProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
+            var publicProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<T>();
             foreach (var constructorParameter in constructorParameters)
             {
                 publicProperties.Remove(constructorParameter);
@@ -62,25 +59,25 @@ namespace Typesafe.Kernel
                 existingProperty.SetValue(instanceAsObject, value, null);
             }
 
-            return (TInstance) instanceAsObject;
+            return (T) instanceAsObject;
         }
 
-        private static TInstance ConstructInstance<TInstance>(
-            IValueResolver<T> valueResolver)
+        private static T ConstructInstance(IValueResolver<T> valueResolver)
         {
-            var constructorParameterValues = GetConstructorArguments<TInstance>(valueResolver);
+            var constructorParameterValues = GetConstructorArguments(valueResolver);
 
-            if (Activator.CreateInstance(typeof(TInstance), constructorParameterValues.ToArray()) is TInstance instance) return instance;
+            if (Activator.CreateInstance(typeof(T), constructorParameterValues) is T instance) return instance;
 
             throw new InvalidOperationException($"Cannot construct instance of type '{typeof(T).Name}'.");
         }
 
-        private static object[] GetConstructorArguments<TInstance>(IValueResolver<T> valueResolver)
+        private static object[] GetConstructorArguments(IValueResolver<T> valueResolver)
         {
-            return GetConstructorParameters<TInstance>()
-                .Select(info => info.Name)
-                .Select(valueResolver.Resolve)
-                .ToArray();
+            return GetConstructorParameters<T>()
+                       ?.Select(info => info.Name)
+                       ?.Select(valueResolver.Resolve)
+                       ?.ToArray()
+                   ?? new object[0];
         }
 
         private static ParameterInfo[] GetConstructorParameters<TInstance>()
