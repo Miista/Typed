@@ -78,7 +78,7 @@ namespace Typesafe.Kernel
             return GetConstructorParameters()?.Select(info => info.Name) ?? new string[0];
         }
         
-        private static ParameterInfo[] GetConstructorParameters()
+        private static IEnumerable<ParameterInfo> GetConstructorParameters()
         {
             var constructorParameters = typeof(T)
                                             ?.GetConstructors()
