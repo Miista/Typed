@@ -428,22 +428,22 @@ namespace Typesafe.With.Tests
                 result.Age.Should().Be(2);
             }
             
-            private struct StructWithPropertySetter
+            private struct StructWithPropertySetterAndDefaultConstructor
             {
                 public int Age { get; set; }
             }
             
             [Fact]
-            public void Supports_struct_with_property_setter()
+            public void Supports_struct_with_property_setter_and_default_constructor()
             {
                 // Arrange
-                var source = new StructWithPropertySetter{Age = 1};
+                var source = new StructWithPropertySetterAndDefaultConstructor{Age = 1};
                 
                 // Act
                 var result = source.With(s => s.Age, 2);
 
                 // Assert
-                result.Should().BeOfType<StructWithPropertySetter>();
+                result.Should().BeOfType<StructWithPropertySetterAndDefaultConstructor>();
                 result.Age.Should().Be(2);
             }
             
