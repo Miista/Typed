@@ -68,19 +68,19 @@ namespace Typesafe.Kernel
         private static TInstance ConstructInstance<TInstance>(
             IValueResolver<T> valueResolver)
         {
-            var constructorParameters = GetConstructorParameters<TInstance>();
-
-            var constructorParameterValues = new List<object>();
-            
-            foreach (var constructorParameter in constructorParameters)
-            {
-                var parameterValue = valueResolver.Resolve(constructorParameter.Name);
-                constructorParameterValues.Add(parameterValue);
-            }
+            var constructorParameterValues = GetConstructorArguments<TInstance>(valueResolver);
 
             if (Activator.CreateInstance(typeof(TInstance), constructorParameterValues.ToArray()) is TInstance instance) return instance;
 
             throw new InvalidOperationException($"Cannot construct instance of type '{typeof(T).Name}'.");
+        }
+
+        private static object[] GetConstructorArguments<TInstance>(IValueResolver<T> valueResolver)
+        {
+            return GetConstructorParameters<TInstance>()
+                .Select(info => info.Name)
+                .Select(valueResolver.Resolve)
+                .ToArray();
         }
 
         private static ParameterInfo[] GetConstructorParameters<TInstance>()
