@@ -25,6 +25,23 @@ namespace Typesafe.Kernel
             return enrichedInstance;
         }
 
+        private static T ConstructInstance(IValueResolver<T> valueResolver)
+        {
+            var constructorParameterValues = GetConstructorArguments(valueResolver);
+
+            if (Activator.CreateInstance(typeof(T), constructorParameterValues) is T instance) return instance;
+
+            throw new InvalidOperationException($"Cannot construct instance of type '{typeof(T).Name}'.");
+        }
+
+        private static object[] GetConstructorArguments(IValueResolver<T> valueResolver)
+        {
+            return GetConstructorParameterNames()
+                       ?.Select(valueResolver.Resolve)
+                       ?.ToArray()
+                   ?? new object[0];
+        }
+
         /// <summary>
         /// Mutates <paramref name="instance"/>, setting all public non-constructor properties.
         /// </summary>
@@ -54,23 +71,6 @@ namespace Typesafe.Kernel
             }
 
             return (T) instanceAsObject;
-        }
-
-        private static T ConstructInstance(IValueResolver<T> valueResolver)
-        {
-            var constructorParameterValues = GetConstructorArguments(valueResolver);
-
-            if (Activator.CreateInstance(typeof(T), constructorParameterValues) is T instance) return instance;
-
-            throw new InvalidOperationException($"Cannot construct instance of type '{typeof(T).Name}'.");
-        }
-
-        private static object[] GetConstructorArguments(IValueResolver<T> valueResolver)
-        {
-            return GetConstructorParameterNames()
-                       ?.Select(valueResolver.Resolve)
-                       ?.ToArray()
-                   ?? new object[0];
         }
 
         private static IEnumerable<string> GetConstructorParameterNames()
