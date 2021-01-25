@@ -42,19 +42,14 @@ namespace Typesafe.Kernel
                 publicProperties.Remove(constructorParameter);
             }
             
-            foreach (var property in publicProperties)
+            foreach (var (key, existingProperty) in publicProperties)
             {
-                if (!publicProperties.TryGetValue(property.Key, out var existingProperty))
-                {
-                    throw new InvalidOperationException($"Cannot find property with name '{property.Key}'.");
-                }
-
                 if (!existingProperty.CanWrite)
                 {
-                    throw new InvalidOperationException($"Property '{property.Key.ToPropertyCase()}' cannot be written to.");
+                    throw new InvalidOperationException($"Property '{key.ToPropertyCase()}' cannot be written to.");
                 }
 
-                var value = valueResolver.Resolve(property.Key);
+                var value = valueResolver.Resolve(key);
                 existingProperty.SetValue(instanceAsObject, value, null);
             }
 
