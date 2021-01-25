@@ -35,7 +35,7 @@ namespace Typesafe.Kernel
         private static T EnrichByProperty(T instance, IValueResolver<T> valueResolver)
         {
             var instanceAsObject = (object) instance;
-            var constructorParameters = GetConstructorParameters<T>().Select(info => info.Name);
+            var constructorParameters = GetConstructorParameters().Select(info => info.Name);
             
             var publicProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<T>();
             foreach (var constructorParameter in constructorParameters)
@@ -73,16 +73,16 @@ namespace Typesafe.Kernel
 
         private static object[] GetConstructorArguments(IValueResolver<T> valueResolver)
         {
-            return GetConstructorParameters<T>()
+            return GetConstructorParameters()
                        ?.Select(info => info.Name)
                        ?.Select(valueResolver.Resolve)
                        ?.ToArray()
                    ?? new object[0];
         }
 
-        private static ParameterInfo[] GetConstructorParameters<TInstance>()
+        private static ParameterInfo[] GetConstructorParameters()
         {
-            var constructorParameters = typeof(TInstance)
+            var constructorParameters = typeof(T)
                                             ?.GetConstructors()
                                             ?.OrderByDescending(info => info.GetParameters().Length)
                                             ?.FirstOrDefault()
