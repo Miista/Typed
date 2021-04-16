@@ -35,7 +35,7 @@ namespace Typesafe.With.Tests
 
             internal class TypeWithInternalSetter
             {
-                public int Age { get; }
+                public int Age { get; internal set; }
 
                 public TypeWithInternalSetter(int age)
                 {
@@ -77,7 +77,7 @@ namespace Typesafe.With.Tests
 
             internal class TypeWithPrivateSetter
             {
-                public int Age { get; }
+                public int Age { get; private set; }
 
                 public TypeWithPrivateSetter(int age)
                 {
@@ -94,6 +94,94 @@ namespace Typesafe.With.Tests
                 // Assert
                 result.Should().NotBeNull();
                 result.Age.Should().Be(newValue);
+            }
+        }
+
+        public class Validation
+        {
+            internal class TypeWithConstructorAndGetterSetter
+            {
+                public int Property { get; set; }
+
+                public TypeWithConstructorAndGetterSetter(int property)
+                {
+                    Property = property;
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Can_handle_property_with_constructor_argumenter_and_getter_setter(TypeWithConstructorAndGetterSetter source, int newValue)
+            {
+                // Act
+                Action act = () => source.With(a => a.Property, newValue);
+                
+                // Assert
+                act.Should().NotThrow<Exception>(because: "the property has a constructor parameter/setter");
+            }
+            
+            internal class TypeWithConstructorAndGetter
+            {
+                public int Property { get; }
+
+                public TypeWithConstructorAndGetter(int property)
+                {
+                    Property = property;
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Can_handle_property_with_constructor_argument_and_getter(TypeWithConstructorAndGetter source, int newValue)
+            {
+                // Act
+                Action act = () => source.With(a => a.Property, newValue);
+                
+                // Assert
+                act.Should().NotThrow<Exception>(because: "the property has a constructor parameter");
+            }
+            
+            internal class TypeWithGetterSetter
+            {
+                public int Property { get; set; }
+            }
+            
+            [Theory, AutoData]
+            internal void Can_handle_property_with_getter_setter_only(TypeWithGetterSetter source, int newValue)
+            {
+                // Act
+                Action act = () => source.With(a => a.Property, newValue);
+                
+                // Assert
+                act.Should().NotThrow<Exception>(because: "the property has a setter");
+            }
+            
+            internal class TypeWithGetterOnly
+            {
+                public int Property { get; }
+            }
+            
+            [Theory, AutoData]
+            internal void Cannot_handle_property_with_getter_only(TypeWithGetterOnly source, int newValue)
+            {
+                // Act
+                Action act = () => source.With(a => a.Property, newValue);
+                
+                // Assert
+                act.Should().Throw<Exception>(because: "the property has no setter");
+            }
+            
+            internal class TypeWithExpressionBodiedProperty
+            {
+                public int ExpressionBodiedProperty => int.MaxValue;
+            }
+            
+            [Theory, AutoData]
+            internal void Cannot_handle_expression_bodied_property(TypeWithExpressionBodiedProperty source, int newValue)
+            {
+                // Act
+                Action act = () => source.With(a => a.ExpressionBodiedProperty, newValue);
+                
+                // Assert
+                act.Should().Throw<Exception>(because: "an expression-bodied property cannot be written to");
             }
         }
 
