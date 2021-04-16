@@ -99,24 +99,103 @@ namespace Typesafe.With.Tests
 
         public class Validation
         {
-            internal class TypeWithConstructorAndGetterSetter
+            /***
+             * Verify support for the following combinations:
+             *
+             * If there is no public getter for the property, there is no way we can set it.
+             * Therefore, all cases not having a public getter are not supported.
+             * 
+             *                      Combinations: Property has
+             * ----------------------------------------------------------------------------------------------
+             * Public getter   Public setter        Constructor parameter   Supported?  Notes
+             * Yes             No                   No                      No          There is no setter/constructor for the property
+             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes             Yes                  No                      Yes         There is a setter for the property
+             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *
+             *                      Combinations: Property has
+             * ----------------------------------------------------------------------------------------------
+             * Public getter   Private setter       Constructor parameter   Supported?  Notes
+             * Yes             No                   No                      No          There is no setter/constructor for the property
+             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes             Yes                  No                      Yes         There is a setter for the property
+             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *
+             *                      Combinations: Property has
+             * ----------------------------------------------------------------------------------------------
+             * Public getter   Protected setter     Constructor parameter   Supported?  Notes
+             * Yes             No                   No                      No          There is no setter/constructor for the property
+             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes             Yes                  No                      Yes         There is a setter for the property
+             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *
+             *                      Combinations: Property has
+             * ----------------------------------------------------------------------------------------------
+             * Public getter   Internal setter      Constructor parameter   Supported?  Notes
+             * Yes             No                   No                      No          There is no setter/constructor for the property
+             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes             Yes                  No                      Yes         There is a setter for the property
+             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             */
+            
+            internal class TypeWithConstructor_PublicGetter_NoSetter
             {
-                public int Property { get; set; }
+                public int Property { get; }
 
-                public TypeWithConstructorAndGetterSetter(int property)
+                public TypeWithConstructor_PublicGetter_NoSetter(int property)
                 {
                     Property = property;
                 }
             }
             
             [Theory, AutoData]
-            internal void Can_handle_property_with_constructor_argumenter_and_getter_setter(TypeWithConstructorAndGetterSetter source, int newValue)
+            internal void Can_handle_property_with_constructor_argument(TypeWithConstructor_PublicGetter_NoSetter source, int newValue)
+            {
+                // Act
+                Action act = () => source.With(a => a.Property, newValue);
+                
+                // Assert
+                act.Should().NotThrow<Exception>(because: "the property has a constructor parameter");
+            }
+            
+            internal class TypeWithConstructor_PublicGetter_PublicSetter
+            {
+                public int Property { get; set; }
+
+                public TypeWithConstructor_PublicGetter_PublicSetter(int property)
+                {
+                    Property = property;
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Can_handle_property_with_constructor_argument_and_public_getter_setter(TypeWithConstructor_PublicGetter_PublicSetter source, int newValue)
             {
                 // Act
                 Action act = () => source.With(a => a.Property, newValue);
                 
                 // Assert
                 act.Should().NotThrow<Exception>(because: "the property has a constructor parameter/setter");
+            }
+            
+            internal class TypeWithConstructorAndPublicGetterAndPrivateSetter
+            {
+                public int Property { get; private set; }
+
+                public TypeWithConstructorAndPublicGetterAndPrivateSetter(int property)
+                {
+                    Property = property;
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Can_handle_property_with_constructor_argument_and_public_getter_and_private_setter(TypeWithConstructorAndPublicGetterAndPrivateSetter source, int newValue)
+            {
+                // Act
+                Action act = () => source.With(a => a.Property, newValue);
+                
+                // Assert
+                act.Should().NotThrow<Exception>(because: "the property has a constructor parameter");
             }
             
             internal class TypeWithConstructorAndGetter
