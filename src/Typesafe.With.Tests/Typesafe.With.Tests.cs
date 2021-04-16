@@ -97,7 +97,7 @@ namespace Typesafe.With.Tests
             }
         }
 
-        public class Validation
+        public class MemberAccess
         {
             /***
              * Verify support for the following combinations:
@@ -105,37 +105,37 @@ namespace Typesafe.With.Tests
              * If there is no public getter for the property, there is no way we can set it.
              * Therefore, all cases not having a public getter are not supported.
              * 
-             *                      Combinations: Property has
-             * ----------------------------------------------------------------------------------------------
-             * Public getter   Public setter        Constructor parameter   Supported?  Notes
-             * Yes             No                   No                      No          There is no setter/constructor for the property
-             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
-             * Yes             Yes                  No                      Yes         There is a setter for the property
-             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *          Combinations: Property has
+             * ------------------------------------------------------------------------------
+             * Public setter        Constructor parameter   Supported?  Notes
+             * No                   No                      No          There is no setter/constructor for the property
+             * No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes                  No                      Yes         There is a setter for the property
+             * Yes                  Yes                     Yes         There is a setter/constructor for the property
              *
-             *                      Combinations: Property has
-             * ----------------------------------------------------------------------------------------------
-             * Public getter   Private setter       Constructor parameter   Supported?  Notes
-             * Yes             No                   No                      No          There is no setter/constructor for the property
-             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
-             * Yes             Yes                  No                      Yes         There is a setter for the property
-             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *          Combinations: Property has
+             * ------------------------------------------------------------------------------
+             * Private setter       Constructor parameter   Supported?  Notes
+             * No                   No                      No          There is no setter/constructor for the property
+             * No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes                  No                      Yes         There is a setter for the property
+             * Yes                  Yes                     Yes         There is a setter/constructor for the property
              *
-             *                      Combinations: Property has
-             * ----------------------------------------------------------------------------------------------
-             * Public getter   Protected setter     Constructor parameter   Supported?  Notes
-             * Yes             No                   No                      No          There is no setter/constructor for the property
-             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
-             * Yes             Yes                  No                      Yes         There is a setter for the property
-             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *          Combinations: Property has
+             * ------------------------------------------------------------------------------
+             * Protected setter     Constructor parameter   Supported?  Notes
+             * No                   No                      No          There is no setter/constructor for the property
+             * No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes                  No                      Yes         There is a setter for the property
+             * Yes                  Yes                     Yes         There is a setter/constructor for the property
              *
-             *                      Combinations: Property has
-             * ----------------------------------------------------------------------------------------------
-             * Public getter   Internal setter      Constructor parameter   Supported?  Notes
-             * Yes             No                   No                      No          There is no setter/constructor for the property
-             * Yes             No                   Yes                     Yes         There is a constructor argument for the property
-             * Yes             Yes                  No                      Yes         There is a setter for the property
-             * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *          Combinations: Property has
+             * ------------------------------------------------------------------------------
+             * Internal setter      Constructor parameter   Supported?  Notes
+             * No                   No                      No          There is no setter/constructor for the property
+             * No                   Yes                     Yes         There is a constructor argument for the property
+             * Yes                  No                      Yes         There is a setter for the property
+             * Yes                  Yes                     Yes         There is a setter/constructor for the property
              *
              * Conclusion
              * ==========
@@ -143,8 +143,87 @@ namespace Typesafe.With.Tests
              * - A public getter, and
              * - A public/private/internal setter, or
              * - A constructor parameter
+             *
+             * As long as there is either a constructor parameter or a public/private/internal setter,
+             * the property can be set.
              */
-            
+
+            public class PublicSetter
+            {
+                public class TypeWithoutSetterAndConstructor
+                {
+                    public int Property { get; }
+                }
+                
+                [Theory, AutoData]
+                public void Does_not_support_property_with_no_setter_nor_constructor_argument(TypeWithoutSetterAndConstructor source, int newValue)
+                {
+                    // Act
+                    Action act = () => source.With(a => a.Property, newValue);
+                    
+                    // Assert
+                    act.Should().Throw<Exception>(because: "the property has neither a constructor parameter nor setter");
+                }
+                
+                public class TypeWithoutSetterButConstructor
+                {
+                    public int Property { get; }
+
+                    public TypeWithoutSetterButConstructor(int property)
+                    {
+                        Property = property;
+                    }
+                }
+                
+                [Theory, AutoData]
+                public void Supports_property_with_no_setter_but_constructor_argument(TypeWithoutSetterButConstructor source, int newValue)
+                {
+                    // Act
+                    Action act = () => source.With(a => a.Property, newValue);
+                    
+                    // Assert
+                    act.Should().NotThrow<Exception>(because: "the property has a constructor parameter");
+                }
+                
+                public class TypeWithPublicSetter
+                {
+                    public int Property { get; set; }
+                }
+                
+                [Theory, AutoData]
+                public void Supports_property_with_public_setter(TypeWithPublicSetter source, int newValue)
+                {
+                    // Act
+                    Action act = () => source.With(a => a.Property, newValue);
+                    
+                    // Assert
+                    act.Should().NotThrow<Exception>(because: "the property has a public setter");
+                }
+                
+                public class TypeWithPublicSetterAndConstructor
+                {
+                    public int Property { get; set; }
+
+                    public TypeWithPublicSetterAndConstructor(int property)
+                    {
+                        Property = property;
+                    }
+                }
+                
+                [Theory, AutoData]
+                public void Supports_property_with_public_setter_and_constructor(TypeWithPublicSetterAndConstructor source, int newValue)
+                {
+                    // Act
+                    Action act = () => source.With(a => a.Property, newValue);
+                    
+                    // Assert
+                    act.Should().NotThrow<Exception>(because: "the property has a public setter and constructor parameter");
+                }
+            }
+        }
+
+        public class Validation
+        {
             internal class TypeWithConstructor_PublicGetter_NoSetter
             {
                 public int Property { get; }
