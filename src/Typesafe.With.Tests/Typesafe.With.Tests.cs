@@ -136,6 +136,13 @@ namespace Typesafe.With.Tests
              * Yes             No                   Yes                     Yes         There is a constructor argument for the property
              * Yes             Yes                  No                      Yes         There is a setter for the property
              * Yes             Yes                  Yes                     Yes         There is a setter/constructor for the property
+             *
+             * Conclusion
+             * ==========
+             * It all boils down to whether there is:
+             * - A public getter, and
+             * - A public/private/internal setter, or
+             * - A constructor parameter
              */
             
             internal class TypeWithConstructor_PublicGetter_NoSetter
