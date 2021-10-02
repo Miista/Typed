@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Linq;
 using Typesafe.Merge;
 using Typesafe.With;
+using Typesafe.With.Sequence;
 
 namespace Typesafe.Sandbox
 {
@@ -49,12 +51,24 @@ namespace Typesafe.Sandbox
         static void Main(string[] args)
         {
             {
+                var sequence = WithSequence.New<Student>()
+                    .With(s => s.Name, "Harry")
+                    .ToSequence();
+
+                var students = new[] {new Student("Malfoy", House.Slytherin)};
+                var enumerable = students.Select(sequence.ApplyTo);
                 
-                var harry = new Student("Harry Potter", House.Gryffindor);
-                var malfoy = harry
-                    .With(p => p.Name, "Malfoy")
-                    .With(p => p.House, House.Slytherin);
-                Console.WriteLine(malfoy.House);
+                foreach (var student in enumerable)
+                {
+                    Console.WriteLine(student.Name);
+                }
+            }
+            {
+                // var harry = new Student("Harry Potter", House.Gryffindor);
+                // var malfoy = harry
+                //     .With(p => p.Name, "Malfoy")
+                //     .With(p => p.House, House.Slytherin);
+                // Console.WriteLine(malfoy.House);
             }
             
             {
