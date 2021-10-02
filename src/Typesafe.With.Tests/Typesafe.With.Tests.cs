@@ -10,6 +10,125 @@ namespace Typesafe.With.Tests
 {
     public class Tests
     {
+        public class Inheritance
+        {
+            internal class BaseClassWithSetter
+            {
+                public string String { get; set; }
+            }
+
+            internal class ChildClassWithSetter : BaseClassWithSetter
+            {
+                public int Int { get; set; }
+            }
+
+            [Theory, AutoData]
+            internal void Can_handle_inherited_property_with_setter(ChildClassWithSetter childClass, string newValue)
+            {
+                // Act
+                var result = childClass.With(c => c.String, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Int.Should().Be(childClass.Int);
+                result.String.Should().Be(newValue);
+            }
+            
+            internal class BaseClassWithInternalSetter
+            {
+                public string String { get; internal set; }
+            }
+
+            internal class ChildClassWithInheritedInternalSetter : BaseClassWithInternalSetter
+            {
+                public int Int { get; set; }
+            }
+
+            [Theory, AutoData]
+            internal void Can_handle_inherited_property_with_inherited_internal_setter(ChildClassWithInheritedInternalSetter childClass, string newValue)
+            {
+                // Act
+                var result = childClass.With(c => c.String, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Int.Should().Be(childClass.Int);
+                result.String.Should().Be(newValue);
+            }
+            
+            internal class BaseClassWithConstructor
+            {
+                public string String { get; }
+
+                public BaseClassWithConstructor(string @string) => String = @string;
+            }
+
+            internal class ChildClassWithSetterAndInheritedConstructor : BaseClassWithConstructor
+            {
+                public int Int { get; set; }
+
+
+                public ChildClassWithSetterAndInheritedConstructor(string @string) : base(@string)
+                {
+                }
+            }
+
+            [Theory, AutoData]
+            internal void Can_handle_inherited_property_with_inherited_constructor(ChildClassWithSetterAndInheritedConstructor childClass, string newValue)
+            {
+                // Act
+                var result = childClass.With(c => c.String, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Int.Should().Be(childClass.Int);
+                result.String.Should().Be(newValue);
+            }
+            
+            internal class ChildClassWithConstructorAndInheritedConstructor : BaseClassWithConstructor
+            {
+                public int Int { get; }
+
+
+                public ChildClassWithConstructorAndInheritedConstructor(int @int, string @string) : base(@string) =>
+                    Int = @int; 
+            }
+
+            [Theory, AutoData]
+            internal void Can_handle_class_with_constructor_and_inherited_constructor(ChildClassWithConstructorAndInheritedConstructor childClass, string newValue)
+            {
+                // Act
+                var result = childClass.With(c => c.String, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Int.Should().Be(childClass.Int);
+                result.String.Should().Be(newValue);
+            }
+
+            internal abstract class AbstractBaseClass
+            {
+                public string String { get; set; }
+            }
+
+            internal class ChildClassWithAbstractBaseClass : AbstractBaseClass
+            {
+                public int Int { get; set; }
+            }
+            
+            [Theory, AutoData]
+            internal void Can_handle_class_with_abstract_base_class(ChildClassWithAbstractBaseClass childClass, string newValue)
+            {
+                // Act
+                var result = childClass.With(c => c.String, newValue);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Int.Should().Be(childClass.Int);
+                result.String.Should().Be(newValue);
+            }
+        }
+        
         public class PropertyCopy
         {
             internal class TypeWithNoSetter
