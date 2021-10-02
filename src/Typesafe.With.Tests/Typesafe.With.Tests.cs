@@ -696,6 +696,25 @@ namespace Typesafe.With.Tests
 
                 IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
             }
+
+            internal class SimpleType
+            {
+                public string String { get; set; }
+            }
+
+            [Theory, AutoData]
+            internal void Can_take_method_group_as_value_for_property_value(SimpleType instance, string newValue)
+            {
+                // Arrange
+                string ReturnNewValue() => newValue;
+                
+                // Act
+                var result = instance.With(i => i.String, ReturnNewValue());
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.String.Should().Be(newValue);
+            }
         }
 
         public class Casing
