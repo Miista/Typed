@@ -82,6 +82,53 @@ Console.WriteLine(malfoy.Name); // Prints "Malfoy"
 Console.WriteLine(malfoy.House); // Prints "Slytherin"
 ```
 
+### Sequencing
+If you need to update many objects at the same time, you can create a sequence of mutations to be applied.
+
+```csharp
+public class Person
+{
+    public string Name { get; }
+    
+    public Person(string name) => (Name) = (name);
+}
+
+var sequence = WithSequence.New<Person>()
+                    .With(p => p.Name, "Harry")
+                    .ToSequence();
+
+var persons = new List<Person>
+{
+    new Person("Malfoy", 0),
+    new Person("Hermione", 0)
+};
+var updatedPersons = persons.Select(sequence.ApplyTo);
+
+foreach (var person in updatedPersons)
+{
+    Console.WriteLine(person.Name); // Prints "Harry"
+}
+```
+
+### Lazy Evaluation
+In cases where object construction is expensive, you can make the calls to `With` be lazily evaluated.
+
+```csharp
+using Lazy;
+
+public class Person
+{
+    public string Name { get; }
+    
+    public Person(string name) => (Name) = (name);
+}
+
+var harry = new Person("Harry Potter");
+var hermione = harry.With(p => p.Name, "Hermione Granger");
+
+Console.WriteLine(hermione.Name); // Prints "Hermione Granger"
+```
+
 ## How it works
 The resulting type `T` is constructed via the following steps:
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Typesafe.Merge;
 using Typesafe.With;
@@ -51,6 +52,23 @@ namespace Typesafe.Sandbox
         static void Main(string[] args)
         {
             {
+                var sequence = WithSequence.New<Person>()
+                    .With(p => p.Name, "Harry")
+                    .ToSequence();
+
+                var persons = new List<Person>
+                {
+                    new Person("Malfoy", 0),
+                    new Person("Hermione", 0)
+                };
+                var updatedPersons = persons.Select(sequence.ApplyTo);
+                
+                foreach (var person in updatedPersons)
+                {
+                    Console.WriteLine(person.Name); // Prints "Harry"
+                }
+            }
+            {
                 var sequence = WithSequence.New<Student>()
                     .With(s => s.Name, "Harry")
                     .ToSequence();
@@ -85,32 +103,34 @@ namespace Typesafe.Sandbox
                 var unsafeMerged = person1.Merge<UnrelatedType, Person, NoCtor>(person3);
                 Console.WriteLine(unsafeMerged);
             }
+
+            {
+                var person = new Person("Søren", 10);
+                Console.WriteLine(person);
             
-            var person = new Person("Søren", 10);
-            Console.WriteLine(person);
+                var lasse = person
+                    .With(p => p.Name, "Lasse");
+                Console.WriteLine(lasse);
             
-            var lasse = person
-                .With(p => p.Name, "Lasse");
-            Console.WriteLine(lasse);
+                var youngerSoren = person.With(p => p.Age, 5);
+                Console.WriteLine(youngerSoren);
             
-            var youngerSoren = person.With(p => p.Age, 5);
-            Console.WriteLine(youngerSoren);
+                var withLastName = person
+                    .With(p => p.Name, "Test")
+                    .With(p => p.LastName, "Guldmund")
+                    .With(p => p.Age, 5);
+                Console.WriteLine(withLastName);
             
-            var withLastName = person
-                .With(p => p.Name, "Test")
-                .With(p => p.LastName, "Guldmund")
-                .With(p => p.Age, 5);
-            Console.WriteLine(withLastName);
+                var sorenAgain = person
+                    .With(p => p.Name, "Søren");
+                Console.WriteLine(sorenAgain);
             
-            var sorenAgain = person
-                .With(p => p.Name, "Søren");
-            Console.WriteLine(sorenAgain);
+                var noCtor = new NoCtor {Name = "Søren"};
+                Console.WriteLine(noCtor);
             
-            var noCtor = new NoCtor {Name = "Søren"};
-            Console.WriteLine(noCtor);
-            
-            var noCtor1 = noCtor.With(p => p.Name, "Test");
-            Console.WriteLine(noCtor1);
+                var noCtor1 = noCtor.With(p => p.Name, "Test");
+                Console.WriteLine(noCtor1);
+            }
         }
     }
 }
