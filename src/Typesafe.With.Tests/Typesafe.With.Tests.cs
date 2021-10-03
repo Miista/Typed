@@ -720,6 +720,38 @@ namespace Typesafe.With.Tests
                 result.Should().NotBeNull();
                 result.String.Should().Be(newValue);
             }
+
+            internal class TypeWithMultipleConstructors
+            {
+                public string String { get; set; }
+                public int Int { get; set; }
+
+                public TypeWithMultipleConstructors(string @string) : this(@string, int.MaxValue)
+                {
+                }
+
+                public TypeWithMultipleConstructors(string @string, int @int)
+                {
+                    String = @string;
+                    Int = @int;
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Supports_type_with_multiple_constructors(TypeWithMultipleConstructors instance, string newValue)
+            {
+                // Arrange
+                string ReturnNewValue() => newValue;
+                
+                // Act
+                var result = instance.With(i => i.String, ReturnNewValue());
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.String.Should().Be(newValue);
+                result.Int.Should().Be(instance.Int);
+            }
+
         }
 
         public class Casing
