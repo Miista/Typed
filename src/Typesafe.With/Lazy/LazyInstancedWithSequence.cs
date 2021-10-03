@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using Typesafe.Kernel;
+using Typesafe.With.Sequence;
 
 namespace Typesafe.With.Lazy
 {
@@ -39,7 +40,15 @@ namespace Typesafe.With.Lazy
       }
     }
 
+    private T Apply()
+    {
+      var sequence = new WithSequence<T>(_properties);
+      var appliedInstance = sequence.ApplyTo(_instance);
+
+      return appliedInstance;
+    }
+
     public static implicit operator T(LazyInstancedWithSequence<T> builder) =>
-      new Sequence.WithSequence<T>(builder._properties).ApplyTo(builder._instance);
+      builder.Apply();
   }
 }
