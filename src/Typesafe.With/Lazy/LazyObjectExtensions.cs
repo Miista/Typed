@@ -17,6 +17,18 @@ namespace Typesafe.With.Lazy
 
             return new LazyInstancedWithSequence<T>(instance).With(propertyPicker, propertyValue);
         }
+        
+        public static LazyInstancedWithSequence<T> With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, Func<TProperty> propertyValueFactory) where T : class
+        {
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+            if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
+
+            var propertyName = propertyPicker.GetPropertyName();
+            Validate<T>(propertyName);
+
+            return new LazyInstancedWithSequence<T>(instance).With(propertyPicker, propertyValueFactory);
+        }
+
 
         private static void Validate<T>(string propertyName)
         {

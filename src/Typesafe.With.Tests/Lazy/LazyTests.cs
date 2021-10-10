@@ -101,6 +101,69 @@ namespace Typesafe.With.Lazy.Tests
         // Assert
         act.Should().Throw<Exception>();
       }
+      
+      [Theory, AutoData]
+      internal void Does_not_evaluate_lazy_sequence(TypeWithProperties instance, string newValue)
+      {
+        // Act
+        Action act = () => { instance
+          .With(i => i.String, newValue)
+          .With(i => i.String, () => throw new Exception()); };
+
+        // Assert
+        act.Should().NotThrow<Exception>();
+      }
+
+      internal class TypeWithFuncs
+      {
+        public Func<string> Function { get; set; }
+        public string String { get; set; }
+      }
+      
+      [Theory, AutoData]
+      internal void Supports_types_with_funcs(TypeWithFuncs instance, string newValue, Func<string> function)
+      {
+        // Arrange
+        var sequence = instance
+          .With(i => i.String, newValue)
+          .With(i => i.Function, function);
+        
+        // Act
+        Action act = () => { TypeWithFuncs result = sequence; };
+
+        // Assert
+        act.Should().NotThrow<Exception>();
+      }
+      
+      [Theory, AutoData]
+      internal void Supports_taking_a_function_in_a_value_factory(TypeWithFuncs instance, string newValue, Func<string> function)
+      {
+        // Arrange
+        var sequence = instance
+          .With(i => i.String, newValue)
+          .With(i => i.Function, () => function);
+        
+        // Act
+        Action act = () => { TypeWithFuncs result = sequence; };
+
+        // Assert
+        act.Should().NotThrow<Exception>();
+      }
+      
+      [Theory, AutoData]
+      internal void Supports_taking_a_value_factory_as_the_first_parameter(TypeWithProperties instance, string newValue)
+      {
+        // Arrange
+        var sequence = instance
+          .With(i => i.String, () => newValue);
+        
+        // Act
+        Action act = () => { TypeWithProperties result = sequence; };
+
+        // Assert
+        act.Should().NotThrow<Exception>();
+      }
+
     }
   }
 }

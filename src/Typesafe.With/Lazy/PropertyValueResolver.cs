@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 
 namespace Typesafe.With.Lazy
@@ -32,8 +33,11 @@ namespace Typesafe.With.Lazy
     private static object ExecuteValueFactory(Type propertyValueType, object propertyValueFactory)
     {
       var genericTypeDefinition = propertyValueType.GetGenericTypeDefinition();
+      var genericArgument = propertyValueFactory.GetType().GetGenericArguments().FirstOrDefault()
+                            ?? throw new InvalidOperationException(
+                              $"Instance of {typeof(ValueFactory<>).Name} lacks a generic type argument.");
       
-      var valueFromFactory = genericTypeDefinition.MakeGenericType(typeof(string))
+      var valueFromFactory = genericTypeDefinition.MakeGenericType(genericArgument)
         .InvokeMember(
           name: InvokeName,
           invokeAttr: BindingFlags.InvokeMethod,
