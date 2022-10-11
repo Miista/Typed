@@ -759,5 +759,191 @@ namespace Typesafe.With.Tests
                 result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
         }
+
+        public class SupplyExistingValue
+        {
+            internal class TypeWithConstructor
+            {
+                public string Name { get; }
+                public Func<string, string> Function { get; }
+
+                public TypeWithConstructor(string name, Func<string, string> function)
+                {
+                    Name = name;
+                    Function = function;
+                }
+            }
+            
+            internal class TypeWithProperties
+            {
+                public string Name { get; set; }
+                public Func<string, string> Function { get; set; }
+            }
+            
+            internal class TypeWithConstructorAndProperties
+            {
+                public int Age { get; }
+                public string Name { get; set; }
+                public Func<string, string> Function { get; set; }
+
+                public TypeWithConstructorAndProperties(int age)
+                {
+                    Age = age;
+                }
+            }
+
+            [Fact]
+            public void TestWithConstructor()
+            {
+                // Arrange
+                const string name = nameof(name);
+
+                var type1 = new TypeWithConstructor(name, s => s);
+
+                // Act
+                var result = type1.With(t => t.Name, value => value.Substring(1));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name.Substring(1));
+            }
+            
+            [Fact]
+            public void TestWithProperties()
+            {
+                // Arrange
+                const string name = nameof(name);
+
+                var type1 = new TypeWithProperties { Name = name, Function = s => s };
+
+                // Act
+                var result = type1.With(t => t.Name, value => value.Substring(1));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name.Substring(1));
+            }
+
+            [Fact]
+            public void TestWithProperties1()
+            {
+                // Arrange
+                const string name1 = nameof(name1);
+                const string name2 = nameof(name2);
+
+                var type1 = new TypeWithProperties { Name = name1, Function = s => s };
+
+                // Act
+                var result = type1.With(t => t.Name, value => name2);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name2);
+            }
+            
+            [Fact]
+            public void TestWithProperties2()
+            {
+                // Arrange
+                const string name1 = nameof(name1);
+                const string name2 = nameof(name2);
+
+                var type1 = new TypeWithProperties { Name = name1, Function = s => s };
+
+                // Act
+                var result = type1.With(t => t.Function, s => name2);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name1);
+                result.Function(name1).Should().Be(name2);
+            }
+            
+            [Fact]
+            public void TestWithConstructor1()
+            {
+                // Arrange
+                const string name1 = nameof(name1);
+                const string name2 = nameof(name2);
+
+                var type1 = new TypeWithConstructor(name1, s => s);
+
+                // Act
+                var result = type1.With(t => t.Name, value => name2);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name2);
+            }
+            
+            [Fact]
+            public void TestWithConstructor2()
+            {
+                // Arrange
+                const string name1 = nameof(name1);
+                const string name2 = nameof(name2);
+
+                var type1 = new TypeWithConstructor(name1, s => s);
+
+                // Act
+                var result = type1.With(t => t.Function, s => name2);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name1);
+                result.Function(name1).Should().Be(name2);
+            }
+            
+            [Fact]
+            public void TestWithConstructorAndProperties()
+            {
+                // Arrange
+                const string name = nameof(name);
+
+                var type1 = new TypeWithConstructorAndProperties(0) { Name = name, Function = s => s };
+
+                // Act
+                var result = type1.With(t => t.Name, value => value.Substring(1));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name.Substring(1));
+            }
+
+            [Fact]
+            public void TestWithConstructorAndProperties1()
+            {
+                // Arrange
+                const string name1 = nameof(name1);
+                const string name2 = nameof(name2);
+
+                var type1 = new TypeWithConstructorAndProperties(0) { Name = name1, Function = s => s };
+
+                // Act
+                var result = type1.With(t => t.Name, value => name2);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name2);
+            }
+            
+            [Fact]
+            public void TestWithConstructorAndProperties2()
+            {
+                // Arrange
+                const string name1 = nameof(name1);
+                const string name2 = nameof(name2);
+
+                var type1 = new TypeWithConstructorAndProperties(0) { Name = name1, Function = s => s };
+
+                // Act
+                var result = type1.With(t => t.Function, s => name2);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(name1);
+                result.Function(name1).Should().Be(name2);
+            }
+        }
     }
 }

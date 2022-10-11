@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using Typesafe.Kernel;
 
@@ -20,11 +21,13 @@ namespace Typesafe.With
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
+            var valueResolver = new ValueResolver<T>(instance);
+            
             // 1. Construct instance of T (and set properties via constructor)
-            var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo);
+            var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo, valueResolver);
             
             // 2. Set new properties via property setters
-            var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor);
+            var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor, valueResolver);
 
             if (remainingPropertiesAfterPropSet.Count != 0)
             {
@@ -37,19 +40,21 @@ namespace Typesafe.With
             
             return enrichedInstanceWithCopiedProperties;
         }
-        
+
         /// <summary>
         /// Mutates <paramref name="instance"/>, setting all properties in <paramref name="newProperties"/>.
         /// </summary>
         /// <param name="instance">The instance to mutate.</param>
         /// <param name="newProperties">The properties to set.</param>
+        /// <param name="valueResolver">The value resolver.</param>
         /// <typeparam name="TInstance">The instance type.</typeparam>
         /// <returns>A mutated instance.</returns>
         /// <exception cref="InvalidOperationException">If the property does not exist or cannot be written to.</exception>
         /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) EnrichByProperty<TInstance>(
             TInstance instance,
-            IReadOnlyDictionary<string, object> newProperties)
+            IReadOnlyDictionary<string, object> newProperties,
+            ValueResolver<TInstance> valueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
             var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
@@ -65,8 +70,10 @@ namespace Typesafe.With
                 {
                     throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
                 }
+
+                var value = valueResolver.Resolve(property.Value, existingProperty);
                 
-                existingProperty.SetValue(instance, property.Value);
+                existingProperty.SetValue(instance, value);
                 remainingProperties.Remove(property.Key);
             }
 
@@ -116,7 +123,8 @@ namespace Typesafe.With
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) WithByConstructor<TInstance>(
             TInstance instance,
             IReadOnlyDictionary<string, object> newProperties,
-            ConstructorInfo constructorInfo)
+            ConstructorInfo constructorInfo,
+            ValueResolver<TInstance> valueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
 
@@ -129,7 +137,20 @@ namespace Typesafe.With
                 var originalValue = existingProperty?.GetValue(instance);
                 var hasNewValue = newProperties.TryGetValue(propertyName, out var newValue);
                 var value = hasNewValue ? newValue : originalValue;
+
+                value = valueResolver.Resolve(value, existingProperty);
                 
+                // if (newValue is LambdaExpression expr)
+                // {
+                //     value = expr.Compile().DynamicInvoke(existingProperty.GetValue(instance));
+                // }
+                
+                // if (newValue.GetType().IsGenericType)
+                // {
+                //     var genericTypeDefinition = newValue.GetType().GetGenericTypeDefinition();
+                //     var b = genericTypeDefinition == typeof(Func<,>);
+                //     dynamic n = newValue;
+                // }
                 parameters.Add(value);
                 remainingProperties.Remove(propertyName);
             }
