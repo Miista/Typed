@@ -30,6 +30,7 @@ namespace Typesafe.With
             
             return builder.Construct(instance, properties);
         }
+        
         public static T With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, TProperty propertyValue)
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
