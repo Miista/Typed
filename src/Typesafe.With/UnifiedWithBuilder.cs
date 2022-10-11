@@ -140,17 +140,6 @@ namespace Typesafe.With
 
                 value = valueResolver.Resolve(value, existingProperty);
                 
-                // if (newValue is LambdaExpression expr)
-                // {
-                //     value = expr.Compile().DynamicInvoke(existingProperty.GetValue(instance));
-                // }
-                
-                // if (newValue.GetType().IsGenericType)
-                // {
-                //     var genericTypeDefinition = newValue.GetType().GetGenericTypeDefinition();
-                //     var b = genericTypeDefinition == typeof(Func<,>);
-                //     dynamic n = newValue;
-                // }
                 parameters.Add(value);
                 remainingProperties.Remove(propertyName);
             }
