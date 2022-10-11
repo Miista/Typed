@@ -49,10 +49,20 @@ namespace Typesafe.Sandbox
         static void Main(string[] args)
         {
             {
+                var harry = new Student("Harry Potter", House.Gryffindor);
+                var malfoy = harry
+                    .With(p => p.Name, "Malfoy")
+                    .With(p => p.House, house => house == House.Slytherin ? House.Gryffindor : house);
+
+                Console.WriteLine(malfoy.Name); // Prints "Malfoy"
+                Console.WriteLine(malfoy.House); // Prints "Gryffindor"
+            }
+            
+            {
                 
                 var harry = new Student("Harry Potter", House.Gryffindor);
                 var malfoy = harry
-                    .With(p => p.Name, name => name.Substring(2))
+                    .With(p => p.Name, name => name.Length == 1 ? name : "Snape")
                     .With(p => p.House, House.Slytherin);
                 Console.WriteLine(malfoy.Name);
             }
