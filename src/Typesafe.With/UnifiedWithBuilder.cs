@@ -20,7 +20,7 @@ namespace Typesafe.With
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
-            var valueResolver = new ValueResolver<T>(instance);
+            var valueResolver = new DependentValueResolver<T>(instance);
             
             // 1. Construct instance of T (and set properties via constructor)
             var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo, valueResolver);
@@ -44,7 +44,7 @@ namespace Typesafe.With
             TInstance instance,
             IReadOnlyDictionary<string, object> newProperties,
             ConstructorInfo constructorInfo,
-            ValueResolver<TInstance> valueResolver)
+            DependentValueResolver<TInstance> dependentValueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
 
@@ -56,10 +56,12 @@ namespace Typesafe.With
                 var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
                 var originalValue = existingProperty?.GetValue(instance);
                 var hasNewValue = newProperties.TryGetValue(propertyName, out var newValue);
-                var value = hasNewValue ? newValue : originalValue;
+                var value = hasNewValue
+                    ? newValue is DependentValue dependentValue
+                        ? dependentValueResolver.Resolve(dependentValue, existingProperty)
+                        : newValue
+                    : originalValue;
 
-                value = valueResolver.Resolve(value, existingProperty);
-                
                 parameters.Add(value);
                 remainingProperties.Remove(propertyName);
             }
@@ -94,7 +96,7 @@ namespace Typesafe.With
         /// </summary>
         /// <param name="instance">The instance to mutate.</param>
         /// <param name="newProperties">The properties to set.</param>
-        /// <param name="valueResolver">The value resolver.</param>
+        /// <param name="dependentValueResolver">The value resolver.</param>
         /// <typeparam name="TInstance">The instance type.</typeparam>
         /// <returns>A mutated instance.</returns>
         /// <exception cref="InvalidOperationException">If the property does not exist or cannot be written to.</exception>
@@ -102,7 +104,7 @@ namespace Typesafe.With
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) EnrichByProperty<TInstance>(
             TInstance instance,
             IReadOnlyDictionary<string, object> newProperties,
-            ValueResolver<TInstance> valueResolver)
+            DependentValueResolver<TInstance> dependentValueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
             var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
@@ -119,7 +121,9 @@ namespace Typesafe.With
                     throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
                 }
 
-                var value = valueResolver.Resolve(property.Value, existingProperty);
+                var value = property.Value is DependentValue dependentValue
+                    ? dependentValueResolver.Resolve(dependentValue, existingProperty)
+                    : property.Value;
                 
                 existingProperty.SetValue(instance, value);
                 remainingProperties.Remove(property.Key);

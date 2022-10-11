@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
@@ -760,189 +761,151 @@ namespace Typesafe.With.Tests
             }
         }
 
-        public class SupplyExistingValue
+        public class DependentValues
         {
-            internal class TypeWithConstructor
+            private class TypeWithConstructor
             {
                 public string Name { get; }
-                public Func<string, string> Function { get; }
 
-                public TypeWithConstructor(string name, Func<string, string> function)
+                public TypeWithConstructor(string name)
                 {
                     Name = name;
-                    Function = function;
                 }
             }
-            
-            internal class TypeWithProperties
+
+            [Theory, AutoData]
+            public void Can_resolve_dependent_value_for_constructor(string originalName)
             {
-                public string Name { get; set; }
-                public Func<string, string> Function { get; set; }
+                // Arrange
+                var newLength = originalName.Length - 10;
+                var expectedName = originalName.Substring(newLength);
+                
+                var sut = new TypeWithConstructor(originalName);
+
+                // Act
+                var result = sut.With(c => c.Name, name => name.Substring(newLength));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(expectedName, because: "the name has been 'substringed'");
             }
             
-            internal class TypeWithConstructorAndProperties
+            private class TypeWithProperty
             {
-                public int Age { get; }
                 public string Name { get; set; }
-                public Func<string, string> Function { get; set; }
+            }
+            
+            [Theory, AutoData]
+            public void Can_resolve_dependent_value_for_property(string originalName)
+            {
+                // Arrange
+                var newLength = originalName.Length - 10;
+                var expectedName = originalName.Substring(newLength);
 
-                public TypeWithConstructorAndProperties(int age)
+                var sut = new TypeWithProperty { Name = originalName };
+
+                // Act
+                var result = sut.With(c => c.Name, name => name.Substring(newLength));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(expectedName, because: "the name has been 'substringed'");
+            }
+
+            private class TypeWithConstructorAndProperty
+            {
+                public string Name { get; set; }
+                public int Age { get; }
+
+                public TypeWithConstructorAndProperty(int age)
                 {
                     Age = age;
                 }
             }
-
-            [Fact]
-            public void TestWithConstructor()
+            
+            [Theory, AutoData]
+            public void Can_resolve_dependent_value_for_constructor_and_property(string originalName, int originalAge)
             {
                 // Arrange
-                const string name = nameof(name);
+                var newLength = originalName.Length - 10;
+                var expectedName = originalName.Substring(newLength);
+                var expectedAge = originalAge + 1;
 
-                var type1 = new TypeWithConstructor(name, s => s);
+                var sut = new TypeWithConstructorAndProperty(originalAge) { Name = originalName };
 
                 // Act
-                var result = type1.With(t => t.Name, value => value.Substring(1));
+                var result = sut
+                    .With(c => c.Name, name => name.Substring(newLength))
+                    .With(c => c.Age, age => age + 1);
 
                 // Assert
                 result.Should().NotBeNull();
-                result.Name.Should().Be(name.Substring(1));
+                result.Name.Should().Be(expectedName, because: "the name has been 'substringed'");
+                result.Age.Should().Be(expectedAge, because: "the age has been incremented by one");
+            }
+
+            private class TypeWithManyProperties
+            {
+                public string Name { get; set; }
+                public int Age { get; set; }
+                public double Wage { get; set; }
             }
             
-            [Fact]
-            public void TestWithProperties()
+            [Theory, AutoData]
+            public void Does_not_change_other_properties(string name, int age, double wage)
             {
                 // Arrange
-                const string name = nameof(name);
-
-                var type1 = new TypeWithProperties { Name = name, Function = s => s };
+                var sut = new TypeWithManyProperties { Name = name, Age = age, Wage = wage };
 
                 // Act
-                var result = type1.With(t => t.Name, value => value.Substring(1));
+                var result = sut.With(c => c.Age, currentAge => currentAge + 1);
 
                 // Assert
                 result.Should().NotBeNull();
-                result.Name.Should().Be(name.Substring(1));
+                result.Should().BeEquivalentTo(sut, options => options.Excluding(info => info.Age), because: "other properties are not changed");
+                result.Age.Should().Be(age + 1, because: "the value has been incremented by one");
             }
 
-            [Fact]
-            public void TestWithProperties1()
+            [Theory, AutoData]
+            public void Supplies_value_from_new_instance_when_chaining(string originalName, string newName)
             {
                 // Arrange
-                const string name1 = nameof(name1);
-                const string name2 = nameof(name2);
-
-                var type1 = new TypeWithProperties { Name = name1, Function = s => s };
+                var expectedName = new string(newName.Substring(0, 10).Reverse().ToArray());
+                var sut = new TypeWithConstructor(originalName);
 
                 // Act
-                var result = type1.With(t => t.Name, value => name2);
+                var result = sut
+                    .With(c => c.Name, newName)
+                    .With(c => c.Name, name => name.Substring(0, 10))
+                    .With(c => c.Name, name => new string(name.Reverse().ToArray()));
 
                 // Assert
                 result.Should().NotBeNull();
-                result.Name.Should().Be(name2);
-            }
-            
-            [Fact]
-            public void TestWithProperties2()
-            {
-                // Arrange
-                const string name1 = nameof(name1);
-                const string name2 = nameof(name2);
-
-                var type1 = new TypeWithProperties { Name = name1, Function = s => s };
-
-                // Act
-                var result = type1.With(t => t.Function, s => name2);
-
-                // Assert
-                result.Should().NotBeNull();
-                result.Name.Should().Be(name1);
-                result.Function(name1).Should().Be(name2);
-            }
-            
-            [Fact]
-            public void TestWithConstructor1()
-            {
-                // Arrange
-                const string name1 = nameof(name1);
-                const string name2 = nameof(name2);
-
-                var type1 = new TypeWithConstructor(name1, s => s);
-
-                // Act
-                var result = type1.With(t => t.Name, value => name2);
-
-                // Assert
-                result.Should().NotBeNull();
-                result.Name.Should().Be(name2);
-            }
-            
-            [Fact]
-            public void TestWithConstructor2()
-            {
-                // Arrange
-                const string name1 = nameof(name1);
-                const string name2 = nameof(name2);
-
-                var type1 = new TypeWithConstructor(name1, s => s);
-
-                // Act
-                var result = type1.With(t => t.Function, s => name2);
-
-                // Assert
-                result.Should().NotBeNull();
-                result.Name.Should().Be(name1);
-                result.Function(name1).Should().Be(name2);
-            }
-            
-            [Fact]
-            public void TestWithConstructorAndProperties()
-            {
-                // Arrange
-                const string name = nameof(name);
-
-                var type1 = new TypeWithConstructorAndProperties(0) { Name = name, Function = s => s };
-
-                // Act
-                var result = type1.With(t => t.Name, value => value.Substring(1));
-
-                // Assert
-                result.Should().NotBeNull();
-                result.Name.Should().Be(name.Substring(1));
+                result.Name.Should().Be(expectedName);
             }
 
-            [Fact]
-            public void TestWithConstructorAndProperties1()
+            private class TypeWithEnumerableProperty
             {
-                // Arrange
-                const string name1 = nameof(name1);
-                const string name2 = nameof(name2);
+                public IEnumerable<string> Names { get; }
 
-                var type1 = new TypeWithConstructorAndProperties(0) { Name = name1, Function = s => s };
-
-                // Act
-                var result = type1.With(t => t.Name, value => name2);
-
-                // Assert
-                result.Should().NotBeNull();
-                result.Name.Should().Be(name2);
+                public TypeWithEnumerableProperty(IEnumerable<string> names)
+                {
+                    Names = names;
+                }
             }
-            
-            [Fact]
-            public void TestWithConstructorAndProperties2()
+
+            [Theory, AutoData]
+            public void Can_handle_lists(string item1, string item2)
             {
                 // Arrange
-                const string name1 = nameof(name1);
-                const string name2 = nameof(name2);
-
-                var type1 = new TypeWithConstructorAndProperties(0) { Name = name1, Function = s => s };
+                var sut = new TypeWithEnumerableProperty(new List<string>{item1});
 
                 // Act
-                var result = type1.With(t => t.Function, s => name2);
+                var result = sut.With(c => c.Names, names => names.Concat(new[] { item2 }));
 
                 // Assert
                 result.Should().NotBeNull();
-                result.Name.Should().Be(name1);
-                result.Function(name1).Should().Be(name2);
+                result.Names.Should().HaveCount(2, because: "there are 2 elements in the list");
             }
         }
     }
