@@ -106,30 +106,11 @@ namespace Typesafe.With
             IReadOnlyDictionary<string, object> newProperties,
             DependentValueResolver<TInstance> dependentValueResolver)
         {
-            var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
-            var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
-
-            foreach (var property in newProperties)
-            {
-                if (!existingProperties.TryGetValue(property.Key, out var existingProperty))
-                {
-                    throw new InvalidOperationException($"Cannot find property with name '{property.Key}'.");
-                }
-
-                if (!existingProperty.CanWrite)
-                {
-                    throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
-                }
-
-                var value = property.Value is DependentValue dependentValue
-                    ? dependentValueResolver.Resolve(dependentValue, existingProperty)
-                    : property.Value;
-                
-                existingProperty.SetValue(instance, value);
-                remainingProperties.Remove(property.Key);
-            }
+            var propertySetter = new PropertySetter<TInstance>();
+            var remainingProperties = propertySetter.SetProperties(instance, newProperties, dependentValueResolver);
 
             return (instance, remainingProperties);
+            
         }
 
         private static IEnumerable<PropertyInfo> GetCopyProperties(
