@@ -470,6 +470,27 @@ namespace Typesafe.With.Tests
             }
         }
 
+        public class Immutability
+        {
+            internal class TypeCreatesNewInstance
+            {
+                public string Id { get; }
+
+                public TypeCreatesNewInstance(string id) => Id = id;
+            }
+            
+            [Theory, AutoData]
+            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
+            {
+                // Act
+                var result = source.With(s => s.Id, newValue);
+
+                // Assert
+                result.GetHashCode().Should().NotBe(source.GetHashCode());
+                result.Should().NotBeSameAs(source);
+            }
+        }
+        
         public class General
         {
             internal class TypeWithoutWritableProperty
@@ -741,23 +762,6 @@ namespace Typesafe.With.Tests
 
                 // Assert
                 result.SSN.Should().Be(newValue, because: "the property is set via constructor");
-            }
-
-            internal class TypeCreatesNewInstance
-            {
-                public string Id { get; }
-
-                public TypeCreatesNewInstance(string id) => Id = id;
-            }
-            
-            [Theory, AutoData]
-            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
-            {
-                // Act
-                var result = source.With(s => s.Id, newValue);
-
-                // Assert
-                result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
         }
 
