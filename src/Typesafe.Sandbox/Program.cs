@@ -2,12 +2,20 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using Typesafe.Merge;
+using Typesafe.Sandbox;
 using Typesafe.With;
 using Typesafe.Snapshots;
 
 namespace Typesafe.Sandbox
 {
+    public class Nothing
+    {
+        public string Text { get; set; }
+    }
+    
     class Person
     {
         public string Name { get; }
@@ -28,6 +36,10 @@ namespace Typesafe.Sandbox
             var x = $"Name={Name}; Age={Age}; LastName={LastName}; HashCode={GetHashCode()};";
             return $"{x}{subPersons}";
         }
+    }
+
+    public interface ILol
+    {
     }
 
     [DebuggerDisplay("Not snapshot: {Value}")]
@@ -75,6 +87,128 @@ namespace Typesafe.Sandbox
         Slytherin
     }
     
+    public class LoggingDecorator<T> : DispatchProxy
+    {
+        private T _decorated;
+
+        protected override object Invoke(MethodInfo targetMethod, object[] args)
+        {
+            try
+            {
+                LogBefore(targetMethod, args);
+
+                var result = targetMethod.Invoke(_decorated, args);
+
+                LogAfter(targetMethod, args, result);
+                return result;
+            }
+            catch (Exception ex) when (ex is TargetInvocationException)
+            {
+                LogException(ex.InnerException ?? ex, targetMethod);
+                throw ex.InnerException ?? ex;
+            }
+        }
+
+        public static T Create(T decorated)
+        {
+            object proxy = Create<T, LoggingDecorator<T>>();
+            ((LoggingDecorator<T>)proxy).SetParameters(decorated);
+
+            return (T)proxy;
+        }
+
+        private void SetParameters(T decorated)
+        {
+            if (decorated == null)
+            {
+                throw new ArgumentNullException(nameof(decorated));
+            }
+            _decorated = decorated;
+        }
+
+        private void LogException(Exception exception, MethodInfo methodInfo = null)
+        {
+            Console.WriteLine($"Class {_decorated.GetType().FullName}, Method {methodInfo.Name} threw exception:\n{exception}");
+        }
+
+        private void LogAfter(MethodInfo methodInfo, object[] args, object result)
+        {
+            Console.WriteLine($"Class {_decorated.GetType().FullName}, Method {methodInfo.Name} executed, Output: {result}");
+        }
+
+        private void LogBefore(MethodInfo methodInfo, object[] args)
+        {
+            Console.WriteLine($"Class {_decorated.GetType().FullName}, Method {methodInfo.Name} is executing");
+        }
+    }
+
+    public static class DynamicProxyGenerator
+    {
+        public static T GetInstanceFor<T>()
+        {
+            var typeOfT = typeof(T);
+            var methodInfos = typeOfT.GetMethods();
+            var assName = new AssemblyName(Assembly.GetExecutingAssembly().FullName);
+            var assBuilder = AssemblyBuilder.DefineDynamicAssembly(assName, AssemblyBuilderAccess.RunAndCollect);
+            // var assBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assName, AssemblyBuilderAccess.RunAndSave);
+            var moduleBuilder = assBuilder.DefineDynamicModule(Assembly.GetExecutingAssembly().ManifestModule.Name); //, "test.dll");
+            var typeBuilder = moduleBuilder.DefineType(typeOfT.Name + "Proxy", TypeAttributes.NotPublic);
+
+            // typeBuilder.AddInterfaceImplementation(typeOfT);
+            typeBuilder.SetParent(typeOfT);
+            var ctorBuilder = typeBuilder.DefineConstructor(
+                MethodAttributes.Public,
+                CallingConventions.Standard,
+                new Type[] { });
+            var ilGenerator = ctorBuilder.GetILGenerator();
+            ilGenerator.EmitWriteLine("Creating Proxy instance");
+            ilGenerator.Emit(OpCodes.Ret);
+            foreach (var methodInfo in methodInfos)
+            {
+                var methodBuilder = typeBuilder.DefineMethod(
+                    methodInfo.Name,
+                    MethodAttributes.Public | MethodAttributes.Virtual,
+                    methodInfo.ReturnType,
+                    methodInfo.GetParameters().Select(p => p.GetType()).ToArray()
+                );
+                var methodILGen = methodBuilder.GetILGenerator();
+                if (methodInfo.ReturnType == typeof(void))
+                {
+                    methodILGen.Emit(OpCodes.Ret);
+                }
+                else
+                {
+                    if (methodInfo.ReturnType.IsValueType || methodInfo.ReturnType.IsEnum)
+                    {
+                        MethodInfo getMethod = typeof(Activator).GetMethod("CreateInstance", new Type[]
+                            { typeof(Type) });
+                        LocalBuilder lb = methodILGen.DeclareLocal(methodInfo.ReturnType);
+                        methodILGen.Emit(OpCodes.Ldtoken, lb.LocalType);
+                        methodILGen.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle"));
+                        methodILGen.Emit(OpCodes.Callvirt, getMethod);
+                        methodILGen.Emit(OpCodes.Unbox_Any, lb.LocalType);
+                    }
+                    else
+                    {
+                        methodILGen.Emit(OpCodes.Ldnull);
+                    }
+
+                    methodILGen.Emit(OpCodes.Ret);
+                }
+
+                // typeBuilder.DefineMethodOverride(methodBuilder, methodInfo);
+            }
+
+            var constructorInfo = typeof(DebuggerDisplayAttribute).GetConstructors().First();
+            var customAttributeBuilder = new CustomAttributeBuilder(constructorInfo, new object[]{"Not snapshotted"});
+            typeBuilder.SetCustomAttribute(customAttributeBuilder);
+            Type constructedType = typeBuilder.CreateType();
+            var instance = Activator.CreateInstance(constructedType);
+            return (T)instance;
+        }
+    }  
+
+    
     class Program
     {
         static void Main(string[] args)
@@ -86,8 +220,10 @@ namespace Typesafe.Sandbox
 
                 Console.WriteLine(debugPerson);
 
-                var snapshot = ron.GetSnapshot();
-                Console.WriteLine(snapshot);
+                var instanceFor2 = DynamicProxyGenerator.GetInstanceFor<Person>();
+                var instanceFor = DynamicProxyGenerator.GetInstanceFor<ILol>();
+                var person = LoggingDecorator<Person>.Create(ron);
+                Console.WriteLine(person);
             }
             
             // Snapshots
