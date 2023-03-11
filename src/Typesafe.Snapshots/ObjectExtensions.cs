@@ -8,15 +8,15 @@ namespace Typesafe.Snapshots
     {
         public static T GetSnapshot<T>(this T self)
         {
-            var typeCloner = Get<T>(self);
+            var typeCloner = Get<T>();
             var clone = typeCloner.Clone(self);
 
             return clone;
         }
 
-        private static ITypeCloner<T> Get<T>(T x)
+        private static ITypeCloner<T> Get<T>()
         {
-            var primitiveTypes = new Type[]
+            var primitiveTypes = new[]
             {
                 typeof(int),
                 typeof(short),
