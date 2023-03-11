@@ -74,8 +74,8 @@ namespace Typesafe.Snapshots
                     return cloner;
                 }
             }
-            
-            return new ComplexCloner<T>();
+
+            return new NonCloningCloner<T>(); //ComplexCloner<T>();
         }
     }
 }

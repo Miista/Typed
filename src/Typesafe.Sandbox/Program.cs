@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Typesafe.Merge;
 using Typesafe.With;
@@ -29,6 +30,21 @@ namespace Typesafe.Sandbox
         }
     }
 
+    [DebuggerDisplay("Not snapshot: {Value}")]
+    class DebuggerWrapper<T>
+    {
+        public readonly T Value;
+
+        private DebuggerWrapper(T instance)
+        {
+            Value = instance;
+        }
+
+        public static implicit operator DebuggerWrapper<T>(T instance) => new DebuggerWrapper<T>(instance);
+
+        public static implicit operator T(DebuggerWrapper<T> wrapper) => wrapper.Value;
+    }
+    
     struct ValueType
     {
         public int Age { get; set; }
@@ -63,6 +79,17 @@ namespace Typesafe.Sandbox
     {
         static void Main(string[] args)
         {
+            // Debug wrapper
+            {
+                var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
+                DebuggerWrapper<Person> debugPerson = ron;
+
+                Console.WriteLine(debugPerson);
+
+                var snapshot = ron.GetSnapshot();
+                Console.WriteLine(snapshot);
+            }
+            
             // Snapshots
             {
                 var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
