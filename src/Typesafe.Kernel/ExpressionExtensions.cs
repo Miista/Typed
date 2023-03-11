@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("Typesafe.With")]
 [assembly: InternalsVisibleTo("Typesafe.Merge")]
+[assembly: InternalsVisibleTo("Typesafe.Snapshots")]
 [assembly: InternalsVisibleTo("Typesafe")]
 namespace Typesafe.Kernel
 {

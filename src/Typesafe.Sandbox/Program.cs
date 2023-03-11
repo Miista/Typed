@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using Typesafe.Merge;
 using Typesafe.With;
+using Typesafe.Snapshots;
 
 namespace Typesafe.Sandbox
 {
@@ -9,6 +12,8 @@ namespace Typesafe.Sandbox
         public string Name { get; }
         public int Age { get; }
         public string LastName { get; set; }
+        public List<Person> Persons { get; set; }
+        public ValueType ValueType { get; set; }
 
         public Person(string name, int age)
         {
@@ -16,7 +21,17 @@ namespace Typesafe.Sandbox
             Age = age;
         }
 
-        public override string ToString() => $"Name={Name}; Age={Age}; LastName={LastName}; HashCode={GetHashCode()};";
+        public override string ToString()
+        {
+            var subPersons = string.Join("", Persons?.Select(p => $"{Environment.NewLine} - {p}") ?? new List<string>());
+            var x = $"Name={Name}; Age={Age}; LastName={LastName}; HashCode={GetHashCode()};";
+            return $"{x}{subPersons}";
+        }
+    }
+
+    struct ValueType
+    {
+        public int Age { get; set; }
     }
 
     class NoCtor
@@ -48,7 +63,23 @@ namespace Typesafe.Sandbox
     {
         static void Main(string[] args)
         {
+            // Snapshots
             {
+                var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
+                var draco = new Person("Draco", 2) {LastName = "Malfoy",ValueType = new ValueType{Age = 2}};
+                var harry = new Person("Harry", 1) { LastName = "Potter", Persons = new List<Person>(),ValueType = new ValueType{Age = 1}};
+                harry.Persons.Add(draco);
+                var harrySnapshot = harry.GetSnapshot();
+                harry.LastName = "Malfoy";
+                harry.Persons.Add(ron);
+                ron.LastName = "Not his name";
+                draco.LastName = "woops";
+
+                Console.WriteLine(harry);
+                Console.WriteLine("-----");
+                Console.WriteLine(harrySnapshot);
+            }
+            /*{
                 var harry = new Student("Harry Potter", House.Gryffindor);
                 var malfoy = harry
                     .With(p => p.Name, "Malfoy")
@@ -106,7 +137,7 @@ namespace Typesafe.Sandbox
             Console.WriteLine(noCtor);
             
             var noCtor1 = noCtor.With(p => p.Name, "Test");
-            Console.WriteLine(noCtor1);
+            Console.WriteLine(noCtor1);*/
         }
     }
 }
