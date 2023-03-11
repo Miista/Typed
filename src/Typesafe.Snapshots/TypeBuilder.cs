@@ -53,17 +53,11 @@ namespace Typesafe.Snapshots
             {
                 var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
                 var originalValue = existingProperty?.GetValue(instance);
-                var hasNewValue = newProperties.TryGetValue(propertyName, out var newValue);
                 var clone = typeof(TypeBuilder<T>)
                     .GetMethod(nameof(TypeBuilder<T>.CloneValue), BindingFlags.Static | BindingFlags.NonPublic)
                     .MakeGenericMethod(existingProperty.PropertyType)
                     .Invoke(null, new object[]{originalValue});
                 var value = clone;
-                                    /*hasNewValue
-                    ? newValue is DependentValue dependentValue
-                        ? dependentValueResolver.Resolve(dependentValue, existingProperty)
-                        : newValue
-                    : originalValue*/;
 
                 parameters.Add(value);
                 remainingProperties.Remove(propertyName);
@@ -128,16 +122,31 @@ namespace Typesafe.Snapshots
             foreach (var kvp in properties)
             {
                 var value = kvp.GetValue(source);
-                var clone = typeof(TypeBuilder<T>)
-                    .GetMethod(nameof(TypeBuilder<T>.CloneValue), BindingFlags.Static | BindingFlags.NonPublic)
-                    .MakeGenericMethod(kvp.PropertyType)
-                    .Invoke(null, new object[]{value});
+
+                var clone = MakeGenericMethod<TypeBuilder<T>>(
+                        methodName: nameof(TypeBuilder<T>.CloneValue),
+                        bindingFlags: BindingFlags.Static | BindingFlags.NonPublic,
+                        genericTypes: new[] { kvp.PropertyType }
+                    )
+                    .Invoke(null, new object[] { value });
                 kvp.SetValue(destination, clone);
             }
 
             return destination;
         }
 
+        private static MethodInfo MakeGenericMethod<TT>(
+            string methodName,
+            BindingFlags bindingFlags,
+            Type[] genericTypes
+        )
+        {
+            return typeof(TT)
+                       ?.GetMethod(methodName, bindingFlags)
+                       ?.MakeGenericMethod(genericTypes)
+                   ?? throw new Exception($"Cannot make generic method '{methodName}'");
+        }
+        
         private static T CloneValue<T>(T instance)
         {
             return instance.GetSnapshot();
