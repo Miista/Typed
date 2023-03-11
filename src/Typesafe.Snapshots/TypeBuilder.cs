@@ -20,11 +20,8 @@ namespace Typesafe.Snapshots
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
-            var valueResolver = new DependentValueResolver<T>(instance);
-            var valueCloner = new ValueCloner();
-
             // 1. Construct instance of T (and set properties via constructor)
-            var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo, valueResolver, valueCloner);
+            var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo);
             
             /*// 2. Set new properties via property setters
             var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor, valueResolver, valueCloner);
@@ -36,7 +33,7 @@ namespace Typesafe.Snapshots
             
             // 2. Copy remaining properties
             var copyProperties = GetCopyProperties(_constructorInfo, properties);
-            var enrichedInstanceWithCopiedProperties = CopyProperties(instance, constructedInstance, copyProperties, valueCloner);
+            var enrichedInstanceWithCopiedProperties = CopyProperties(instance, constructedInstance, copyProperties);
             
             return enrichedInstanceWithCopiedProperties;
         }
@@ -44,9 +41,7 @@ namespace Typesafe.Snapshots
         private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) WithByConstructor<TInstance>(
             TInstance instance,
             IReadOnlyDictionary<string, object> newProperties,
-            ConstructorInfo constructorInfo,
-            DependentValueResolver<TInstance> dependentValueResolver,
-            ValueCloner valueCloner
+            ConstructorInfo constructorInfo
         )
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
@@ -59,7 +54,11 @@ namespace Typesafe.Snapshots
                 var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
                 var originalValue = existingProperty?.GetValue(instance);
                 var hasNewValue = newProperties.TryGetValue(propertyName, out var newValue);
-                var value = valueCloner.Clone(originalValue);
+                var clone = typeof(TypeBuilder<T>)
+                    .GetMethod(nameof(TypeBuilder<T>.CloneValue), BindingFlags.Static | BindingFlags.NonPublic)
+                    .MakeGenericMethod(existingProperty.PropertyType)
+                    .Invoke(null, new object[]{originalValue});
+                var value = clone;
                                     /*hasNewValue
                     ? newValue is DependentValue dependentValue
                         ? dependentValueResolver.Resolve(dependentValue, existingProperty)
@@ -95,51 +94,6 @@ namespace Typesafe.Snapshots
             }
         }
 
-        /// <summary>
-        /// Mutates <paramref name="instance"/>, setting all properties in <paramref name="newProperties"/>.
-        /// </summary>
-        /// <param name="instance">The instance to mutate.</param>
-        /// <param name="newProperties">The properties to set.</param>
-        /// <param name="dependentValueResolver">The value resolver.</param>
-        /// <typeparam name="TInstance">The instance type.</typeparam>
-        /// <returns>A mutated instance.</returns>
-        /// <exception cref="InvalidOperationException">If the property does not exist or cannot be written to.</exception>
-        /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
-        private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) EnrichByProperty<TInstance>(
-            TInstance instance,
-            IReadOnlyDictionary<string, object> newProperties,
-            DependentValueResolver<TInstance> dependentValueResolver,
-            ValueCloner valueCloner
-        )
-        {
-            var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
-            var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
-
-            foreach (var property in newProperties)
-            {
-                if (!existingProperties.TryGetValue(property.Key, out var existingProperty))
-                {
-                    throw new InvalidOperationException($"Cannot find property with name '{property.Key}'.");
-                }
-
-                if (!existingProperty.CanWrite)
-                {
-                    throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
-                }
-
-                var existingValue = existingProperty.GetValue(instance);
-                var value = valueCloner.Clone(existingValue);
-                /*property.Value is DependentValue dependentValue
-                    ? dependentValueResolver.Resolve(dependentValue, existingProperty)
-                    : property.Value;*/
-                
-                existingProperty.SetValue(instance, value);
-                remainingProperties.Remove(property.Key);
-            }
-
-            return (instance, remainingProperties);
-        }
-
         private static IEnumerable<PropertyInfo> GetCopyProperties(
             ConstructorInfo constructorInfo,
             IReadOnlyDictionary<string, object> excludeProperties)
@@ -169,7 +123,7 @@ namespace Typesafe.Snapshots
             }
         }
 
-        private static T CopyProperties(T source, T destination, IEnumerable<PropertyInfo> properties, ValueCloner valueCloner)
+        private static T CopyProperties(T source, T destination, IEnumerable<PropertyInfo> properties)
         {
             foreach (var kvp in properties)
             {
