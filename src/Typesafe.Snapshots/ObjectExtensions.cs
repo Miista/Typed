@@ -37,12 +37,42 @@ namespace Typesafe.Snapshots
 
             if (typeof(T) == typeof(Guid)) return new GuidCloner() as ITypeCloner<T>;
             
-            if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(List<>))
+            if (typeof(T).IsGenericType)
             {
-                var first = typeof(T).GenericTypeArguments.First();
-                var cloner = typeof(ListCloner<>).MakeGenericType(first).GetConstructors().First().Invoke(new object[0]) as ITypeCloner<T>;
+                var genericTypeDefinition = typeof(T).GetGenericTypeDefinition();
+                
+                if (genericTypeDefinition == typeof(List<>))
+                {
+                    var first = typeof(T).GenericTypeArguments.First();
+                    var cloner = typeof(ListCloner<>).MakeGenericType(first).GetConstructors().First().Invoke(new object[0]) as ITypeCloner<T>;
 
-                return cloner;
+                    return cloner;
+                }
+
+                if (genericTypeDefinition == typeof(Dictionary<,>))
+                {
+                    var first = typeof(T).GenericTypeArguments.First();
+                    var second = typeof(T).GenericTypeArguments.Skip(1).First();
+                    var cloner = typeof(DictionaryCloner<,>).MakeGenericType(first, second).GetConstructors().First().Invoke(new object[0]) as ITypeCloner<T>;
+
+                    return cloner;
+                }
+
+                if (genericTypeDefinition == typeof(Queue<>))
+                {
+                    var first = typeof(T).GenericTypeArguments.First();
+                    var cloner = typeof(QueueCloner<>).MakeGenericType(first).GetConstructors().First().Invoke(new object[0]) as ITypeCloner<T>;
+
+                    return cloner;
+                }
+                
+                if (genericTypeDefinition == typeof(Stack<>))
+                {
+                    var first = typeof(T).GenericTypeArguments.First();
+                    var cloner = typeof(StackCloner<>).MakeGenericType(first).GetConstructors().First().Invoke(new object[0]) as ITypeCloner<T>;
+
+                    return cloner;
+                }
             }
             
             return new ComplexCloner<T>();

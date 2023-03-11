@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Typesafe.Kernel;
 
 namespace Typesafe.Snapshots
@@ -46,6 +48,54 @@ namespace Typesafe.Snapshots
             }
 
             return newList;
+        }
+    }
+    
+    internal class DictionaryCloner<TKey, TValue> : ITypeCloner<Dictionary<TKey, TValue>>
+    {
+        public Dictionary<TKey, TValue> Clone(Dictionary<TKey, TValue> instance)
+        {
+            var newInstance = new Dictionary<TKey, TValue>(instance.Count);
+
+            foreach (var v in instance)
+            {
+                var snapshot = v.GetSnapshot();
+                newInstance.Add(snapshot.Key, snapshot.Value);
+            }
+
+            return newInstance;
+        }
+    }
+    
+    internal class QueueCloner<T> : ITypeCloner<Queue<T>>
+    {
+        public Queue<T> Clone(Queue<T> instance)
+        {
+            var newInstance = new Queue<T>(instance.Count);
+
+            foreach (var v in instance)
+            {
+                var snapshot = v.GetSnapshot();
+                newInstance.Enqueue(snapshot);
+            }
+
+            return newInstance;
+        }
+    }
+    
+    internal class StackCloner<T> : ITypeCloner<Stack<T>>
+    {
+        public Stack<T> Clone(Stack<T> instance)
+        {
+            var newInstance = new Stack<T>(instance.Count);
+
+            foreach (var v in instance.Reverse())
+            {
+                var snapshot = v.GetSnapshot();
+                newInstance.Push(snapshot);
+            }
+
+            return newInstance;
         }
     }
     

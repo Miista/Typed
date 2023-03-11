@@ -14,7 +14,7 @@ namespace Typesafe.Snapshots.Tests
         public class PrimitiveTypeTests
         {
             [Theory]
-            [ClassData(typeof(PrimitiveTypes))]
+            [ClassData(typeof(TestData.PrimitiveTypes))]
             public void Does_not_throw_on_primitive_types<T>(T value)
             {
                 // Act
@@ -115,7 +115,7 @@ namespace Typesafe.Snapshots.Tests
             }
             
             [Theory]
-            [ClassData(typeof(ComplexTypes))]
+            [ClassData(typeof(TestData.ComplexTypes))]
             public void Does_not_throw_on_complex_type<T>(T value)
             {
                 // Act
@@ -126,7 +126,7 @@ namespace Typesafe.Snapshots.Tests
             }
             
             [Theory]
-            [ClassData(typeof(ComplexTypesWithAssertions))]
+            [ClassData(typeof(TestData.ComplexTypesWithAssertions))]
             public void Can_create_snapshot_of_complex_type_2<T>(T value, Action<T, T> assertion)
             {
                 // Act
@@ -140,78 +140,125 @@ namespace Typesafe.Snapshots.Tests
             }
         }
 
-        private class PrimitiveTypes : IEnumerable<object[]>
+        public class General
         {
-            public IEnumerator<object[]> GetEnumerator()
+            internal class TypeWithPrivateConstructor
             {
-                yield return new object[] {default(int)};
-                yield return new object[] {default(short)};
-                yield return new object[] {default(ushort)};
-                yield return new object[] {default(uint)};
-                yield return new object[] {default(ulong)};
-                yield return new object[] {default(long)};
-                yield return new object[] {default(double)};
-                yield return new object[] {default(float)};
-                yield return new object[] {default(bool)};
-                yield return new object[] {default(char)};
-                yield return new object[] {default(byte)};
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
-        }
-
-        private class ComplexTypes : ComplexTypesWithAssertions
-        {
-            public override IEnumerator<object[]> GetEnumerator()
-            {
-                using (var enumerator = base.GetEnumerator())
-                {
-                    while (enumerator.MoveNext())
-                    {
-                        yield return new object[] { enumerator.Current[0] };
-                    }                    
-                }
-            }
-        }
-        
-        private class ComplexTypesWithAssertions : IEnumerable<object[]>
-        {
-            public virtual IEnumerator<object[]> GetEnumerator()
-            {
-                object[] TestCase<T>(T value, Action<T, T> assertion)
-                {
-                    return new object[] { value, assertion };
-                }
+                public string Name { get; set; }
                 
-                var fixture = new Fixture();
+                private TypeWithPrivateConstructor()
+                {
+                }
 
-                yield return TestCase(
-                    fixture.CreateMany<int>().ToList(),
-                    (original, snapshot) => snapshot.Should().BeEquivalentTo(original)
-                );
-                yield return TestCase(
-                    fixture.Create<Guid>(),
-                    (original, snapshot) => snapshot.Should().Be(original)
-                );
-                // yield return new object[] { fixture.Create<Guid>() };
-                // yield return new object[] {default(short)};
-                // yield return new object[] {default(ushort)};
-                // yield return new object[] {default(uint)};
-                // yield return new object[] {default(ulong)};
-                // yield return new object[] {default(long)};
-                // yield return new object[] {default(double)};
-                // yield return new object[] {default(float)};
-                // yield return new object[] {default(bool)};
-                // yield return new object[] {'a'};
-                // yield return new object[] {default(byte)};
+                public static TypeWithPrivateConstructor Create() => new TypeWithPrivateConstructor();
+            }
+            
+            [Fact]
+            // public void Can_handle_type_with_private_constructor()
+            public void Does_not_throw_on_type_with_private_constructor()
+            {
+                // Arrange
+                var typeWithPrivateConstructor = TypeWithPrivateConstructor.Create();
+                
+                // Act
+                Action act = () => typeWithPrivateConstructor.GetSnapshot();
+
+                // Assert
+                act.Should().NotThrow();
+            }
+        }
+
+        public class TestData
+        {
+            internal class PrimitiveTypes : IEnumerable<object[]>
+            {
+                public IEnumerator<object[]> GetEnumerator()
+                {
+                    yield return new object[] { default(int) };
+                    yield return new object[] { default(short) };
+                    yield return new object[] { default(ushort) };
+                    yield return new object[] { default(uint) };
+                    yield return new object[] { default(ulong) };
+                    yield return new object[] { default(long) };
+                    yield return new object[] { default(double) };
+                    yield return new object[] { default(float) };
+                    yield return new object[] { default(bool) };
+                    yield return new object[] { default(char) };
+                    yield return new object[] { default(byte) };
+                }
+
+                IEnumerator IEnumerable.GetEnumerator()
+                {
+                    return GetEnumerator();
+                }
             }
 
-            IEnumerator IEnumerable.GetEnumerator()
+            internal class ComplexTypes : ComplexTypesWithAssertions
             {
-                return GetEnumerator();
+                public override IEnumerator<object[]> GetEnumerator()
+                {
+                    using (var enumerator = base.GetEnumerator())
+                    {
+                        while (enumerator.MoveNext())
+                        {
+                            yield return new[] { enumerator.Current[0] };
+                        }
+                    }
+                }
+            }
+
+            internal class ComplexTypesWithAssertions : IEnumerable<object[]>
+            {
+                public virtual IEnumerator<object[]> GetEnumerator()
+                {
+                    object[] TestCase<T>(T value, Action<T, T> assertion)
+                    {
+                        return new object[] { value, assertion };
+                    }
+
+                    var fixture = new Fixture();
+
+                    yield return TestCase(
+                        fixture.CreateMany<int>().ToList(),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+                    yield return TestCase(
+                        fixture.Create<Guid>(),
+                        (original, snapshot) => snapshot.Should().Be(original)
+                    );
+                    yield return TestCase(
+                        fixture.Create<Dictionary<string, string>>(),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().Contain(original);
+                        }
+                    );
+                    yield return TestCase(
+                        new Queue<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+                    yield return TestCase(
+                        new Stack<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        });
+                }
+
+                IEnumerator IEnumerable.GetEnumerator()
+                {
+                    return GetEnumerator();
+                }
             }
         }
     }
