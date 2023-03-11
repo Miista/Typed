@@ -174,11 +174,19 @@ namespace Typesafe.Snapshots
             foreach (var kvp in properties)
             {
                 var value = kvp.GetValue(source);
-                var clonedValue = valueCloner.Clone(value);
-                kvp.SetValue(destination, clonedValue);
+                var clone = typeof(TypeBuilder<T>)
+                    .GetMethod(nameof(TypeBuilder<T>.CloneValue), BindingFlags.Static | BindingFlags.NonPublic)
+                    .MakeGenericMethod(kvp.PropertyType)
+                    .Invoke(null, new object[]{value});
+                kvp.SetValue(destination, clone);
             }
 
             return destination;
+        }
+
+        private static T CloneValue<T>(T instance)
+        {
+            return instance.GetSnapshot();
         }
     }
 }

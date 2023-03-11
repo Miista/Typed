@@ -47,7 +47,7 @@ namespace Typesafe.Snapshots
                 return clonedList;
             }
 
-            return instance;
+            return instance.GetSnapshot();
         }
 
         private T GetSnapshot<T>(T instance) => instance.GetSnapshot();

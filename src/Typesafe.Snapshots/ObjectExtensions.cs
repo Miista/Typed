@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Typesafe.Kernel;
+using System.Linq;
 
 namespace Typesafe.Snapshots
 {
@@ -8,11 +8,44 @@ namespace Typesafe.Snapshots
     {
         public static T GetSnapshot<T>(this T self)
         {
-            var constructor = TypeUtils.GetSuitableConstructor<T>();
-            var typeBuilder = new TypeBuilder<T>(constructor);
-            var snapshot = typeBuilder.Construct(self, new Dictionary<string, object>());
+            var typeCloner = Get<T>(self);
+            var clone = typeCloner.Clone(self);
+
+            return clone;
+        }
+
+        private static ITypeCloner<T> Get<T>(T x)
+        {
+            var primitiveTypes = new Type[]
+            {
+                typeof(int),
+                typeof(short),
+                typeof(ushort),
+                typeof(uint),
+                typeof(ulong),
+                typeof(long),
+                typeof(double),
+                typeof(float),
+                typeof(bool),
+                typeof(char),
+                typeof(byte),
+            };
+
+            if (primitiveTypes.Contains(typeof(T))) return new PrimitiveCloner<T>();
+
+            if (typeof(T) == typeof(string)) return new StringCloner() as ITypeCloner<T>;
+
+            if (typeof(T) == typeof(Guid)) return new GuidCloner() as ITypeCloner<T>;
             
-            return snapshot;
+            if (typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(List<>))
+            {
+                var first = typeof(T).GenericTypeArguments.First();
+                var cloner = typeof(ListCloner<>).MakeGenericType(first).GetConstructors().First().Invoke(new object[0]) as ITypeCloner<T>;
+
+                return cloner;
+            }
+            
+            return new ComplexCloner<T>();
         }
     }
 }
