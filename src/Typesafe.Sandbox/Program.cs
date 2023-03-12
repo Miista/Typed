@@ -87,61 +87,6 @@ namespace Typesafe.Sandbox
         Slytherin
     }
     
-    public class LoggingDecorator<T> : DispatchProxy
-    {
-        private T _decorated;
-
-        protected override object Invoke(MethodInfo targetMethod, object[] args)
-        {
-            try
-            {
-                LogBefore(targetMethod, args);
-
-                var result = targetMethod.Invoke(_decorated, args);
-
-                LogAfter(targetMethod, args, result);
-                return result;
-            }
-            catch (Exception ex) when (ex is TargetInvocationException)
-            {
-                LogException(ex.InnerException ?? ex, targetMethod);
-                throw ex.InnerException ?? ex;
-            }
-        }
-
-        public static T Create(T decorated)
-        {
-            object proxy = Create<T, LoggingDecorator<T>>();
-            ((LoggingDecorator<T>)proxy).SetParameters(decorated);
-
-            return (T)proxy;
-        }
-
-        private void SetParameters(T decorated)
-        {
-            if (decorated == null)
-            {
-                throw new ArgumentNullException(nameof(decorated));
-            }
-            _decorated = decorated;
-        }
-
-        private void LogException(Exception exception, MethodInfo methodInfo = null)
-        {
-            Console.WriteLine($"Class {_decorated.GetType().FullName}, Method {methodInfo.Name} threw exception:\n{exception}");
-        }
-
-        private void LogAfter(MethodInfo methodInfo, object[] args, object result)
-        {
-            Console.WriteLine($"Class {_decorated.GetType().FullName}, Method {methodInfo.Name} executed, Output: {result}");
-        }
-
-        private void LogBefore(MethodInfo methodInfo, object[] args)
-        {
-            Console.WriteLine($"Class {_decorated.GetType().FullName}, Method {methodInfo.Name} is executing");
-        }
-    }
-
     public static class DynamicProxyGenerator
     {
         public static T GetInstanceFor<T>(T existing)
@@ -202,7 +147,7 @@ namespace Typesafe.Sandbox
                         methodILGen.Emit(OpCodes.Ldfld, fieldBuilder);
                         methodILGen.Emit(OpCodes.Ldarg_1);
                         methodILGen.Emit(OpCodes.Callvirt, methodInfo);
-                        methodILGen.Emit(OpCodes.Nop);
+                        // methodILGen.Emit(OpCodes.Nop);
                         methodILGen.Emit(OpCodes.Ret);
                         
                         methodBuilders.Add(methodInfo.Name, methodBuilder);
@@ -261,26 +206,26 @@ namespace Typesafe.Sandbox
             }
             
             // Properties
-            var propertyInfos = typeOfT.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            foreach (var propertyInfo in propertyInfos)
-            {
-                var propertyBuilder = typeBuilder.DefineProperty(
-                    propertyInfo.Name,
-                    PropertyAttributes.None,
-                    propertyInfo.PropertyType,
-                    Type.EmptyTypes
-                );
-                
-                if (methodBuilders.TryGetValue($"get_{propertyInfo.Name}", out var getMethod))
-                {
-                    propertyBuilder.SetGetMethod(getMethod);
-                }
-                
-                if (methodBuilders.TryGetValue($"set_{propertyInfo.Name}", out var setMethod))
-                {
-                    propertyBuilder.SetSetMethod(setMethod);
-                }
-            }
+            // var propertyInfos = typeOfT.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            // foreach (var propertyInfo in propertyInfos)
+            // {
+            //     var propertyBuilder = typeBuilder.DefineProperty(
+            //         propertyInfo.Name,
+            //         PropertyAttributes.None,
+            //         propertyInfo.PropertyType,
+            //         Type.EmptyTypes
+            //     );
+            //     
+            //     if (methodBuilders.TryGetValue($"get_{propertyInfo.Name}", out var getMethod))
+            //     {
+            //         propertyBuilder.SetGetMethod(getMethod);
+            //     }
+            //     
+            //     if (methodBuilders.TryGetValue($"set_{propertyInfo.Name}", out var setMethod))
+            //     {
+            //         propertyBuilder.SetSetMethod(setMethod);
+            //     }
+            // }
             
             var constructorInfo = typeof(DebuggerDisplayAttribute).GetConstructors().First();
             var customAttributeBuilder = new CustomAttributeBuilder(constructorInfo, new object[]{"Not snapshotted"});
