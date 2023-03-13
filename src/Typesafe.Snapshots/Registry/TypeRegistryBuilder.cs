@@ -12,24 +12,34 @@ namespace Typesafe.Snapshots.Registry
 
         public TypeRegistryBuilder()
         {
+            // Primitives
+            RegisterCloner(typeof(bool), new PrimitiveCloner<bool>());
+            RegisterCloner(typeof(byte), new PrimitiveCloner<byte>());
+            RegisterCloner(typeof(char), new PrimitiveCloner<char>());
+            RegisterCloner(typeof(double), new PrimitiveCloner<double>());
+            RegisterCloner(typeof(float), new PrimitiveCloner<float>());
             RegisterCloner(typeof(int), new PrimitiveCloner<int>());
+            RegisterCloner(typeof(long), new PrimitiveCloner<long>());
+            RegisterCloner(typeof(sbyte), new PrimitiveCloner<sbyte>());
             RegisterCloner(typeof(short), new PrimitiveCloner<short>());
             RegisterCloner(typeof(ushort), new PrimitiveCloner<ushort>());
             RegisterCloner(typeof(uint), new PrimitiveCloner<uint>());
             RegisterCloner(typeof(ulong), new PrimitiveCloner<ulong>());
-            RegisterCloner(typeof(long), new PrimitiveCloner<long>());
-            RegisterCloner(typeof(double), new PrimitiveCloner<double>());
-            RegisterCloner(typeof(float), new PrimitiveCloner<float>());
-            RegisterCloner(typeof(bool), new PrimitiveCloner<bool>());
-            RegisterCloner(typeof(char), new PrimitiveCloner<char>());
-            RegisterCloner(typeof(byte), new PrimitiveCloner<byte>());
+            
+            // Other
             RegisterCloner(typeof(string), new StringCloner());
             RegisterCloner(typeof(Guid), new GuidCloner());
             
+            // Collections
             RegisterProvider(typeof(List<>), new WrapperTypeCloner(typeof(ListCloner<>)));
+            RegisterProvider(typeof(LinkedList<>), new WrapperTypeCloner(typeof(LinkedListCloner<>)));
+            RegisterProvider(typeof(SortedList<,>), new WrapperTypeCloner(typeof(SortedListCloner<,>)));
+            RegisterProvider(typeof(HashSet<>), new WrapperTypeCloner(typeof(HashSetCloner<>)));
+            RegisterProvider(typeof(SortedSet<>), new WrapperTypeCloner(typeof(SortedSetCloner<>)));
             RegisterProvider(typeof(Queue<>), new WrapperTypeCloner(typeof(QueueCloner<>)));
             RegisterProvider(typeof(Stack<>), new WrapperTypeCloner(typeof(StackCloner<>)));
             RegisterProvider(typeof(Dictionary<,>), new WrapperTypeCloner(typeof(DictionaryCloner<,>)));
+            RegisterProvider(typeof(SortedDictionary<,>), new WrapperTypeCloner(typeof(SortedDictionaryCloner<,>)));
         }
 
         private class WrapperTypeCloner : ITypeClonerProvider

@@ -257,6 +257,8 @@ namespace Typesafe.Sandbox
             
             // Snapshots
             {
+                int[] xs = new int[] { 1, 2, 3 };
+                var ys = xs.GetSnapshot();
                 var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
                 var draco = new Person("Draco", 2) {LastName = "Malfoy",ValueType = new ValueType{Age = 2}};
                 var harry = new Person("Harry", 1) { LastName = "Potter", Persons = new List<Person>(),ValueType = new ValueType{Age = 1}};

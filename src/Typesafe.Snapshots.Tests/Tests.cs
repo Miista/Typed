@@ -126,8 +126,8 @@ namespace Typesafe.Snapshots.Tests
             }
             
             [Theory]
-            [ClassData(typeof(TestData.ComplexTypesWithAssertions))]
-            public void Can_create_snapshot_of_complex_type_2<T>(T value, Action<T, T> assertion)
+            [ClassData(typeof(TestData.CollectionTypesWithAssertions))]
+            public void Can_create_snapshot_of_collection_types<T>(T value, Action<T, T> assertion)
             {
                 // Act
                 var snapshot = value.GetSnapshot();
@@ -174,17 +174,18 @@ namespace Typesafe.Snapshots.Tests
             {
                 public IEnumerator<object[]> GetEnumerator()
                 {
-                    yield return new object[] { default(int) };
-                    yield return new object[] { default(short) };
-                    yield return new object[] { default(ushort) };
-                    yield return new object[] { default(uint) };
-                    yield return new object[] { default(ulong) };
-                    yield return new object[] { default(long) };
+                    yield return new object[] { default(bool) };
+                    yield return new object[] { default(byte) };
+                    yield return new object[] { default(char) };
                     yield return new object[] { default(double) };
                     yield return new object[] { default(float) };
-                    yield return new object[] { default(bool) };
-                    yield return new object[] { default(char) };
-                    yield return new object[] { default(byte) };
+                    yield return new object[] { default(int) };
+                    yield return new object[] { default(long) };
+                    yield return new object[] { default(sbyte) };
+                    yield return new object[] { default(short) };
+                    yield return new object[] { default(uint) };
+                    yield return new object[] { default(ulong) };
+                    yield return new object[] { default(ushort) };
                 }
 
                 IEnumerator IEnumerable.GetEnumerator()
@@ -193,43 +194,76 @@ namespace Typesafe.Snapshots.Tests
                 }
             }
 
-            internal class ComplexTypes : ComplexTypesWithAssertions
+            internal class ComplexTypes : IEnumerable<object[]>
             {
-                public override IEnumerator<object[]> GetEnumerator()
+                public IEnumerator<object[]> GetEnumerator()
                 {
-                    using (var enumerator = base.GetEnumerator())
+                    var fixture = new Fixture();
+
+                    yield return TestCase(fixture.Create<Guid>());
+
+                    using (var enumerator = new CollectionTypesWithAssertions().GetEnumerator())
                     {
                         while (enumerator.MoveNext())
                         {
+                            // Return only the type
                             yield return new[] { enumerator.Current[0] };
                         }
                     }
+                    
+                    object[] TestCase<T>(T value)
+                    {
+                        return new object[] { value };
+                    }
                 }
+
+                IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
             }
 
-            internal class ComplexTypesWithAssertions : IEnumerable<object[]>
+            internal class CollectionTypesWithAssertions : IEnumerable<object[]>
             {
                 public virtual IEnumerator<object[]> GetEnumerator()
                 {
-                    object[] TestCase<T>(T value, Action<T, T> assertion)
-                    {
-                        return new object[] { value, assertion };
-                    }
-
                     var fixture = new Fixture();
 
                     yield return TestCase(
-                        fixture.CreateMany<int>().ToList(),
+                        fixture.CreateMany<int>().ToArray(),
                         (original, snapshot) =>
                         {
                             snapshot.Should().BeEquivalentTo(original);
                             snapshot.Should().ContainInOrder(original);
                         }
                     );
+                    
                     yield return TestCase(
-                        fixture.Create<Guid>(),
-                        (original, snapshot) => snapshot.Should().Be(original)
+                        new List<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
                     );
+                    
+                    yield return TestCase(
+                        new SortedList<int, int>(fixture.Create<Dictionary<int, int>>(), Comparer<int>.Default),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainKeys(original.Keys);
+                            snapshot.Should().ContainValues(original.Values);
+                            snapshot.Should().HaveSameCount(original);
+                        }
+                    );
+                    
+                    yield return TestCase(
+                        new LinkedList<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+
                     yield return TestCase(
                         fixture.Create<Dictionary<string, string>>(),
                         (original, snapshot) =>
@@ -238,6 +272,16 @@ namespace Typesafe.Snapshots.Tests
                             snapshot.Should().Contain(original);
                         }
                     );
+                    
+                    yield return TestCase(
+                        fixture.Create<SortedDictionary<string, string>>(),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().Contain(original);
+                        }
+                    );
+
                     yield return TestCase(
                         new Queue<int>(fixture.CreateMany<int>()),
                         (original, snapshot) =>
@@ -246,6 +290,25 @@ namespace Typesafe.Snapshots.Tests
                             snapshot.Should().ContainInOrder(original);
                         }
                     );
+                    
+                    yield return TestCase(
+                        new HashSet<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+                    
+                    yield return TestCase(
+                        new SortedSet<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+
                     yield return TestCase(
                         new Stack<int>(fixture.CreateMany<int>()),
                         (original, snapshot) =>
@@ -253,6 +316,11 @@ namespace Typesafe.Snapshots.Tests
                             snapshot.Should().BeEquivalentTo(original);
                             snapshot.Should().ContainInOrder(original);
                         });
+
+                    object[] TestCase<T>(T value, Action<T, T> assertion)
+                    {
+                        return new object[] { value, assertion };
+                    }
                 }
 
                 IEnumerator IEnumerable.GetEnumerator()

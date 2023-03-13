@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Typesafe.Snapshots.Cloner;
+using Typesafe.Snapshots.Cloner.Collections;
 
 namespace Typesafe.Snapshots.Registry
 {
@@ -33,6 +34,11 @@ namespace Typesafe.Snapshots.Registry
                                $"Found cloner for type '{typeof(T)}' is not an instance of {typeof(ITypeCloner<T>)}"
                            );
                 }
+            }
+
+            if (requestedType.IsArray)
+            {
+                return new ArrayCloner<T>();
             }
 
             if (_cloners.TryGetValue(requestedType, out var matchingCloner))
