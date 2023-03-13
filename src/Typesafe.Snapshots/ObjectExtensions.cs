@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Typesafe.Snapshots.Cloner;
+using Typesafe.Snapshots.Cloner.Collections;
 
 namespace Typesafe.Snapshots
 {
