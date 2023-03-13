@@ -10,10 +10,17 @@ namespace Typesafe.Snapshots
     {
         public static T GetSnapshot<T>(this T self)
         {
-            var typeCloner = Get<T>();
-            var clone = typeCloner.Clone(self);
+            if (object.ReferenceEquals(null, self)) return default(T);
+            
+            var typeClonerRegistry = new TypeClonerRegistry();
+            if (typeClonerRegistry.TryGetCloner<T>(out var cloner))
+            {
+                var clone = cloner.Clone(self);
 
-            return clone;
+                return clone;
+            }
+
+            throw new Exception($"Cannot get snapshot of type '{typeof(T)}'");
         }
 
         private static ITypeCloner<T> Get<T>()

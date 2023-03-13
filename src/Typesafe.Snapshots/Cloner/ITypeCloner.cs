@@ -1,7 +1,13 @@
 namespace Typesafe.Snapshots.Cloner
 {
-    internal interface ITypeCloner<T>
+    public interface ITypeCloner { }
+
+    public interface ITypeClonerProvider : ITypeCloner
     {
+        ITypeCloner<T> Resolve<T>();
+    }
+
+    public interface ITypeCloner<T> : ITypeCloner {
         T Clone(T instance);
     }
 }

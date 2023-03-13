@@ -241,19 +241,19 @@ namespace Typesafe.Sandbox
         static void Main(string[] args)
         {
             // Debug wrapper
-            {
-                var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
-                DebuggerWrapper<Person> debugPerson = ron;
-
-                Console.WriteLine(debugPerson);
-
-                var nothing = new Nothing { Text = "Hello" };
-                var instanceFor2 = DynamicProxyGenerator.GetInstanceFor<Nothing>(nothing);
-                var x = instanceFor2.Text;
-                instanceFor2.Text = "wee";
-                // var person = LoggingDecorator<Person>.Create(ron);
-                Console.WriteLine(instanceFor2);
-            }
+            // {
+            //     var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
+            //     DebuggerWrapper<Person> debugPerson = ron;
+            //
+            //     Console.WriteLine(debugPerson);
+            //
+            //     var nothing = new Nothing { Text = "Hello" };
+            //     var instanceFor2 = DynamicProxyGenerator.GetInstanceFor<Nothing>(nothing);
+            //     var x = instanceFor2.Text;
+            //     instanceFor2.Text = "wee";
+            //     // var person = LoggingDecorator<Person>.Create(ron);
+            //     Console.WriteLine(instanceFor2);
+            // }
             
             // Snapshots
             {
