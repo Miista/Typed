@@ -11,6 +11,65 @@ namespace Typesafe.With.Tests
 {
     public class Tests
     {
+        public class Expressions
+        {
+            internal class TypeWithNestedProperty
+            {
+                internal class NestedType
+                {
+                    public string Text { get; set; }
+                }
+
+                public NestedType Nested { get; set; }
+            }
+            
+            [Theory, AutoData]
+            internal void Does_not_support_expression_representing_a_nested_property(TypeWithNestedProperty instance, string newValue)
+            {
+                // Act
+                Action act = () => instance.With(_ => _.Nested.Text, newValue);
+
+                // Assert
+                act.Should().Throw<Exception>(because: "the expression represents a nested property");
+            }
+            
+            internal class TypeWithPrivateConstructor
+            {
+                public string Text { get; }
+
+                private TypeWithPrivateConstructor(string text)
+                {
+                    Text = text;
+                }
+
+                public static TypeWithPrivateConstructor Create(string text) => new TypeWithPrivateConstructor(text);
+            }
+            
+            internal class TypeTakingTypeWithPrivateConstructor
+            {
+                public TypeWithPrivateConstructor OtherType { get; }
+
+                public TypeTakingTypeWithPrivateConstructor(TypeWithPrivateConstructor otherType)
+                {
+                    OtherType = otherType;
+                }
+            }
+            
+            [Theory, AutoData]
+            public void With_fails_if_type_in_hierarchy_does_not_have_a_public_constructor(string originalText, string newText)
+            {
+                // Arrange
+                var otherType = TypeWithPrivateConstructor.Create(originalText);
+                var instance = new TypeTakingTypeWithPrivateConstructor(otherType);
+
+                // Act
+                Action act = () => instance.With(_ => _.OtherType.Text, newText);
+
+                // Assert
+                act.Should().Throw<Exception>(because: "the type does not have a public constructor");
+            }
+        }
+        
         public class Inheritance
         {
             internal class BaseClassWithSetter
@@ -344,6 +403,71 @@ namespace Typesafe.With.Tests
 
         public class Validation
         {
+            internal class TypeWithoutMatchingConstructorArgument
+            {
+                public string FullName { get; }
+
+                public TypeWithoutMatchingConstructorArgument(string name)
+                {
+                    FullName = name;
+                }
+            }
+        
+            [Theory, AutoData]
+            internal void With_fails_if_property_has_no_matching_constructor_argument(TypeWithoutMatchingConstructorArgument source, string newValue)
+            {
+                // Act
+                Action act = () => source.With(_ => _.FullName, newValue);
+
+                // Assert
+                act.Should()
+                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
+                    .WithMessage("Property '*' cannot be set via constructor or property setter.");
+            }
+            
+            internal class TypeWithPrivateConstructor
+            {
+                public string Text { get; }
+
+                private TypeWithPrivateConstructor(string text)
+                {
+                    Text = text;
+                }
+
+                public static TypeWithPrivateConstructor Create(string text) => new TypeWithPrivateConstructor(text);
+            }
+
+            [Theory, AutoData]
+            public void Cannot_handle_type_with_private_constructor(string originalText, string newText)
+            {
+                // Arrange
+                var instance = TypeWithPrivateConstructor.Create(originalText);
+
+                // Act
+                Action act = () => instance.With(_ => _.Text, newText);
+
+                // Assert
+                act.Should().Throw<Exception>(because: "the type does not have a public constructor");
+            }
+            
+            internal class TypeWithoutWritableProperty
+            {
+                public string Text { get; }
+            }
+            
+            [Theory, AutoData]
+            internal void With_fails_if_property_is_not_writable(TypeWithoutWritableProperty source, string newValue)
+            {
+                // Act
+                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
+                
+                // Assert
+                act.Should()
+                    .Throw<InvalidOperationException>(
+                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
+                    .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
+            }
+            
             internal class TypeWithConstructor_PublicGetter_NoSetter
             {
                 public int Property { get; }
@@ -472,46 +596,23 @@ namespace Typesafe.With.Tests
 
         public class General
         {
-            internal class TypeWithoutWritableProperty
+            internal class TypeCreatesNewInstance
             {
-                public string Text { get; }
+                public string Id { get; }
+
+                public TypeCreatesNewInstance(string id) => Id = id;
             }
             
             [Theory, AutoData]
-            internal void With_fails_if_property_is_not_writable(TypeWithoutWritableProperty source, string newValue)
+            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
             {
                 // Act
-                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
-                
-                // Assert
-                act.Should()
-                    .Throw<InvalidOperationException>(
-                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
-                    .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
-            }
-
-            internal class TypeWithoutMatchingConstructorArgument
-            {
-                public string FullName { get; }
-
-                public TypeWithoutMatchingConstructorArgument(string name)
-                {
-                    FullName = name;
-                }
-            }
-        
-            [Theory, AutoData]
-            internal void With_fails_if_property_has_no_matching_constructor_argument(TypeWithoutMatchingConstructorArgument source, string newValue)
-            {
-                // Act
-                Action act = () => source.With(_ => _.FullName, newValue);
+                var result = source.With(s => s.Id, newValue);
 
                 // Assert
-                act.Should()
-                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
-                    .WithMessage("Property '*' cannot be set via constructor or property setter.");
+                result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
-
+            
             private class Container<T>
             {
                 public T Value { get; set; }
@@ -741,23 +842,6 @@ namespace Typesafe.With.Tests
 
                 // Assert
                 result.SSN.Should().Be(newValue, because: "the property is set via constructor");
-            }
-
-            internal class TypeCreatesNewInstance
-            {
-                public string Id { get; }
-
-                public TypeCreatesNewInstance(string id) => Id = id;
-            }
-            
-            [Theory, AutoData]
-            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
-            {
-                // Act
-                var result = source.With(s => s.Id, newValue);
-
-                // Assert
-                result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
         }
 
