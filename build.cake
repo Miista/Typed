@@ -39,6 +39,7 @@ Task("Pack")
 {
   Pack("Typesafe.With", new [] { "netstandard2.0" });
   Pack("Typesafe.Merge", new [] { "netstandard2.0" });
+  Pack("Typesafe.Snapshots", new [] { "netstandard2.0" });
 })
 ;
 
