@@ -2,10 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using AutoFixture;
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace Typesafe.Snapshots.Tests
 {
@@ -54,9 +56,11 @@ namespace Typesafe.Snapshots.Tests
         {
             public class Person
             {
+                // ReSharper disable UnusedAutoPropertyAccessor.Global
                 public string Name { get; set; }
                 public List<int> Ages { get; set; }
                 public StructType ValueType { get; set; }
+                // ReSharper enable UnusedAutoPropertyAccessor.Global
             }
             
             public class StructType
@@ -144,18 +148,13 @@ namespace Typesafe.Snapshots.Tests
         {
             internal class TypeWithPrivateConstructor
             {
-                public string Name { get; set; }
-                
-                private TypeWithPrivateConstructor()
-                {
-                }
+                private TypeWithPrivateConstructor() { }
 
                 public static TypeWithPrivateConstructor Create() => new TypeWithPrivateConstructor();
             }
             
             [Fact]
-            // public void Can_handle_type_with_private_constructor()
-            public void Does_not_throw_on_type_with_private_constructor()
+            public void Throws_on_type_with_private_constructor()
             {
                 // Arrange
                 var typeWithPrivateConstructor = TypeWithPrivateConstructor.Create();
@@ -164,10 +163,100 @@ namespace Typesafe.Snapshots.Tests
                 Action act = () => typeWithPrivateConstructor.GetSnapshot();
 
                 // Assert
-                act.Should().NotThrow();
+                act.Should().Throw<Exception>(because: "the type has a private constructor");
             }
         }
 
+        public class Cloning
+        {
+            // ReSharper disable once ClassNeverInstantiated.Global
+            internal class TypeImplementingICloneableByThrowing : ICloneable
+            {
+                public object Clone() => throw new NotImplementedException();
+            }
+
+            [Theory, AutoData]
+            internal void Calls_Clone_if_type_implements_ICloneable(TypeImplementingICloneableByThrowing instance)
+            {
+                // Act
+                Action act = () => instance.GetSnapshot();
+
+                // Assert
+                act.Should().Throw<NotImplementedException>(because: "the type has implemented the Clone method that way");
+            }
+            
+            // ReSharper disable once ClassNeverInstantiated.Global
+            internal class TypeImplementingICloneable : ICloneable
+            {
+                public object Clone() => (TypeImplementingICloneable) this.MemberwiseClone();
+            }
+
+            [Theory, AutoData]
+            internal void Supports_type_implementing_ICloneable(TypeImplementingICloneable instance)
+            {
+                // Act
+                var snapshot = instance.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(instance);
+            }
+
+            // ReSharper disable once ClassNeverInstantiated.Global
+            internal class TypeWithCopyConstructorByThrowing
+            {
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructorByThrowing() { }
+
+                // ReSharper disable once UnusedParameter.Local
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructorByThrowing(TypeWithCopyConstructorByThrowing otherInstance)
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Calls_copy_constructor_if_type_has_one(TypeWithCopyConstructorByThrowing instance)
+            {
+                // Act
+                Action act = () => instance.GetSnapshot();
+
+                // Assert
+                act.Should().Throw<TargetInvocationException>(because: "the type has implemented the copy constructor that way");
+            }
+            
+            internal class TypeWithCopyConstructor
+            {
+                public string Text { get; }
+
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructor(string text)
+                {
+                    Text = text;
+                }
+
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructor(TypeWithCopyConstructor otherInstance)
+                {
+                    Text = string.Copy(otherInstance.Text);
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Supports_type_with_copy_constructor(TypeWithCopyConstructor instance)
+            {
+                // Act
+                var snapshot = instance.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(instance);
+                snapshot.Text.Should().NotBeSameAs(instance.Text);
+            }
+        }
+
+        // ReSharper disable once MemberCanBePrivate.Global
         public class TestData
         {
             internal class PrimitiveTypes : IEnumerable<object[]>
@@ -194,19 +283,20 @@ namespace Typesafe.Snapshots.Tests
                 }
             }
 
-            internal class ComplexTypes : IEnumerable<object[]>
+            internal class ComplexTypes : CollectionTypesWithAssertions, IEnumerable<object[]>
             {
-                public IEnumerator<object[]> GetEnumerator()
+                public override IEnumerator<object[]> GetEnumerator()
                 {
                     var fixture = new Fixture();
 
                     yield return TestCase(fixture.Create<Guid>());
 
-                    using (var enumerator = new CollectionTypesWithAssertions().GetEnumerator())
+                    using (var enumerator = base.GetEnumerator())
                     {
                         while (enumerator.MoveNext())
                         {
                             // Return only the type
+                            // ReSharper disable once PossibleNullReferenceException
                             yield return new[] { enumerator.Current[0] };
                         }
                     }

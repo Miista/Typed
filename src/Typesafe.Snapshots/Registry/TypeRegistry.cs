@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Typesafe.Kernel;
 using Typesafe.Snapshots.Cloner;
 using Typesafe.Snapshots.Cloner.Collections;
 
@@ -47,6 +48,28 @@ namespace Typesafe.Snapshots.Registry
                        ?? throw new InvalidOperationException(
                            $"Found cloner for type '{typeof(T)}' is not an instance of {typeof(ITypeCloner<T>)}"
                        );
+            }
+            
+            if (requestedType.ImplementsInterface<ICloneable>())
+            {
+                if (_providers.TryGetValue(typeof(CloneableClonerProvider), out var clonerProvider))
+                {
+                    return clonerProvider.Resolve<T>()
+                           ?? throw new InvalidOperationException(
+                               $"Found cloner for type '{typeof(T)}' is not an instance of {typeof(ITypeCloner<T>)}"
+                           );
+                }
+            }
+
+            if (requestedType.HasCopyConstructor())
+            {
+                if (_providers.TryGetValue(typeof(CopyConstructorClonerProvider), out var clonerProvider))
+                {
+                    return clonerProvider.Resolve<T>()
+                           ?? throw new InvalidOperationException(
+                               $"Found cloner for type '{typeof(T)}' is not an instance of {typeof(ITypeCloner<T>)}"
+                           );
+                }
             }
 
             // Default to ComplexCloner

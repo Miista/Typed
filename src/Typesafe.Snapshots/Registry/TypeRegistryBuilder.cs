@@ -40,8 +40,28 @@ namespace Typesafe.Snapshots.Registry
             RegisterProvider(typeof(Stack<>), new WrapperTypeCloner(typeof(StackCloner<>)));
             RegisterProvider(typeof(Dictionary<,>), new WrapperTypeCloner(typeof(DictionaryCloner<,>)));
             RegisterProvider(typeof(SortedDictionary<,>), new WrapperTypeCloner(typeof(SortedDictionaryCloner<,>)));
+            RegisterProvider(typeof(CloneableClonerProvider), new NonGenericWrapperTypeCloner(typeof(CloneableCloner<>)));
+            RegisterProvider(typeof(CopyConstructorClonerProvider), new NonGenericWrapperTypeCloner(typeof(CopyConstructorCloner<>)));
         }
 
+        private class NonGenericWrapperTypeCloner : ITypeClonerProvider
+        {
+            private readonly Type _type;
+
+            public NonGenericWrapperTypeCloner(Type type)
+            {
+                _type = type ?? throw new ArgumentNullException(nameof(type));
+            }
+
+            public ITypeCloner<T> Resolve<T>()
+            {
+                var genericType = _type.MakeGenericType(typeof(T));
+                var typeCloner = Activator.CreateInstance(genericType) as ITypeCloner<T>;
+
+                return typeCloner;
+            }
+        }
+        
         private class WrapperTypeCloner : ITypeClonerProvider
         {
             private readonly Type _type;
