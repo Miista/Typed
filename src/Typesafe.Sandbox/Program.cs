@@ -240,6 +240,51 @@ namespace Typesafe.Sandbox
     {
         static void Main(string[] args)
         {
+            {
+                var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
+                var ron1 = ron.GetSnapshot();
+                Console.WriteLine(ron1);
+                int[] xs = new int[] { 1, 2, 3 };
+                var ys = xs.GetSnapshot();
+                Console.WriteLine(ys);
+                // var uri = new Uri("https://google.dk");
+                // var snapshot = uri.GetSnapshot();
+                // Console.WriteLine(snapshot);
+            }
+            // {
+            //     var builder = new SnapshotGeneratorProviderBuilder();
+            //     var snapshotGeneratorProvider = builder.RegisterProvider<int, IntSnapshotGenerator>(new IntSnapshotGenerator()).Build();
+            //     var snapshotGenerator = snapshotGeneratorProvider.GetSnapshotGenerator<int>();
+            //     var snapshot = snapshotGenerator.GenerateSnapshot(2);
+            //     Console.WriteLine(snapshot);
+            // }
+            // {
+            //     var person = new SimplePerson("Me", 2);
+            //     var builder = new SnapshotGeneratorProviderBuilder();
+            //     var snapshotGeneratorProvider = builder.RegisterProvider<int, IntSnapshotGenerator>(new IntSnapshotGenerator()).Build();
+            //     var snapshotBuilder = new SnapshotBuilder(snapshotGeneratorProvider);
+            //     var snapshot = snapshotBuilder.CreateSnapshot(person);
+            //
+            //     Console.WriteLine(snapshot);
+            // }
+            // Snapshots
+            // {
+            //     int[] xs = new int[] { 1, 2, 3 };
+            //     var ys = xs.GetSnapshot();
+            //     var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
+            //     var draco = new Person("Draco", 2) {LastName = "Malfoy",ValueType = new ValueType{Age = 2}};
+            //     var harry = new Person("Harry", 1) { LastName = "Potter", Persons = new List<Person>(),ValueType = new ValueType{Age = 1}};
+            //     harry.Persons.Add(draco);
+            //     var harrySnapshot = harry.GetSnapshot();
+            //     harry.LastName = "Malfoy";
+            //     harry.Persons.Add(ron);
+            //     ron.LastName = "Not his name";
+            //     draco.LastName = "woops";
+            //
+            //     Console.WriteLine(harry);
+            //     Console.WriteLine("-----");
+            //     Console.WriteLine(harrySnapshot);
+            // }
             // Debug wrapper
             // {
             //     var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
@@ -255,24 +300,6 @@ namespace Typesafe.Sandbox
             //     Console.WriteLine(instanceFor2);
             // }
             
-            // Snapshots
-            {
-                int[] xs = new int[] { 1, 2, 3 };
-                var ys = xs.GetSnapshot();
-                var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
-                var draco = new Person("Draco", 2) {LastName = "Malfoy",ValueType = new ValueType{Age = 2}};
-                var harry = new Person("Harry", 1) { LastName = "Potter", Persons = new List<Person>(),ValueType = new ValueType{Age = 1}};
-                harry.Persons.Add(draco);
-                var harrySnapshot = harry.GetSnapshot();
-                harry.LastName = "Malfoy";
-                harry.Persons.Add(ron);
-                ron.LastName = "Not his name";
-                draco.LastName = "woops";
-
-                Console.WriteLine(harry);
-                Console.WriteLine("-----");
-                Console.WriteLine(harrySnapshot);
-            }
             /*{
                 var harry = new Student("Harry Potter", House.Gryffindor);
                 var malfoy = harry

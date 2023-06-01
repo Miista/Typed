@@ -10,7 +10,7 @@ namespace Typesafe.Snapshots
         {
             if (type == null) throw new ArgumentNullException(nameof(type));
 
-            return type.GetInterfaces().OfType<TInterface>().Any();
+            return type.GetInterfaces().Any(interfaceType => interfaceType == typeof(TInterface));
         }
 
         public static bool HasCopyConstructor(this Type type)

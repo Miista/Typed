@@ -8,7 +8,7 @@ namespace Typesafe.Snapshots
         {
             if (ReferenceEquals(null, self)) return default(T);
 
-            var typeRegistry = new TypeRegistryBuilder().Build();
+            var typeRegistry = TypeRegistryLoader.GetTypeRegistry();
             var cloner = typeRegistry.TryGetCloner<T>();
             var clone = cloner.Clone(self);
 

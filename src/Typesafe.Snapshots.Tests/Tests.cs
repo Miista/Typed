@@ -6,6 +6,8 @@ using System.Reflection;
 using AutoFixture;
 using AutoFixture.Xunit2;
 using FluentAssertions;
+using Typesafe.Snapshots.Cloner;
+using Typesafe.Snapshots.Registry;
 using Xunit;
 // ReSharper disable ClassNeverInstantiated.Global
 
@@ -144,6 +146,52 @@ namespace Typesafe.Snapshots.Tests
             }
         }
 
+        public class InterfaceTests
+        {
+            public interface IName
+            {
+                string Name { get; set; }
+            }
+
+            public class NameImpl : IName
+            {
+                public string Name { get; set; }
+            }
+            
+            public class TypeWithInterfaceProperties
+            {
+                public IName Name { get; set; }
+            }
+
+            [Fact]
+            public void Can_create_snapshot_of_class_with_property_having_an_interface_type()
+            {
+                // Arrange
+                var input = new TypeWithInterfaceProperties { Name = new NameImpl { Name = "Name" } };
+
+                // Act
+                var snapshot = input.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(input, because: "it is a snapshot");
+            }
+            
+            [Fact]
+            public void Can_create_snapshot_of_class_with_interface()
+            {
+                // Arrange
+                IName input = new NameImpl { Name = "Name" };
+
+                // Act
+                var snapshot = input.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(input, because: "it is a snapshot");
+            }
+        }
+
         public class General
         {
             internal class TypeWithPrivateConstructor
@@ -254,6 +302,39 @@ namespace Typesafe.Snapshots.Tests
                 snapshot.Should().NotBeSameAs(instance);
                 snapshot.Text.Should().NotBeSameAs(instance.Text);
             }
+        }
+        
+        public class TypeRegistrationInAssemblies
+        {
+            private class SpecialType { }
+
+            private class TypeClonerThrowingException : ITypeCloner<SpecialType>
+            {
+                public SpecialType Clone(SpecialType instance) => throw new NotImplementedException();
+            }
+
+            // ReSharper disable once UnusedType.Global
+            public class TypeClonerThrowingExceptionRegistrar : ITypeClonerRegistrar
+            {
+                public void RegisterTypeCloners(ITypeRegistryBuilder typeRegistryBuilder)
+                {
+                    typeRegistryBuilder.RegisterCloner(typeof(SpecialType), new TypeClonerThrowingException());
+                }
+            }
+
+            [Fact]
+            public void Calls_type_cloner_registrars_in_other_assemblies()
+            {
+                // Arrange
+                var specialType = new SpecialType();
+
+                // Act
+                Action act = () => specialType.GetSnapshot();
+
+                // Assert
+                act.Should().Throw<NotImplementedException>();
+            }
+
         }
 
         // ReSharper disable once MemberCanBePrivate.Global
