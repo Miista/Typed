@@ -4,7 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Typesafe.Kernel;
 
-namespace Typesafe.Snapshots
+namespace Typesafe.Snapshots.Cloner
 {
     internal class TypeBuilder<T>
     {
@@ -21,60 +21,49 @@ namespace Typesafe.Snapshots
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
             // 1. Construct instance of T (and set properties via constructor)
-            var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo);
-            
-            /*// 2. Set new properties via property setters
-            var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor, valueResolver, valueCloner);
-
-            if (remainingPropertiesAfterPropSet.Count != 0)
-            {
-                throw new InvalidOperationException("There are still properties to set but no way to set them.");
-            }*/
+            var constructedInstance = CreateInstanceViaConstructor(instance, _constructorInfo);
             
             // 2. Copy remaining properties
             var copyProperties = GetCopyProperties(_constructorInfo, properties);
-            var enrichedInstanceWithCopiedProperties = CopyProperties(instance, constructedInstance, copyProperties);
+            var constructedInstanceWithCopiedProperties = CopyProperties(instance, constructedInstance, copyProperties);
             
-            return enrichedInstanceWithCopiedProperties;
+            return constructedInstanceWithCopiedProperties;
         }
 
-        private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) WithByConstructor<TInstance>(
+        private static TInstance CreateInstanceViaConstructor<TInstance>(
             TInstance instance,
-            IReadOnlyDictionary<string, object> newProperties,
             ConstructorInfo constructorInfo
         )
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
 
-            var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
             var parameters = new List<object>();
 
             foreach (var parameter in constructorInfo.GetParameters())
             {
-                var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
-                var originalValue = existingProperty?.GetValue(instance);
-                var clone = typeof(TypeBuilder<T>)
-                    .GetMethod(nameof(TypeBuilder<T>.CloneValue), BindingFlags.Static | BindingFlags.NonPublic)
-                    .MakeGenericMethod(existingProperty.PropertyType)
-                    .Invoke(null, new object[]{originalValue});
-                var value = clone;
+                var existingProperty = TryFindExistingProperty(parameter);
 
-                parameters.Add(value);
-                remainingProperties.Remove(propertyName);
+                if (existingProperty == null)
+                    throw new Exception($"Cannot find value for constructor parameter '{parameter.Name}' on type {typeof(TInstance)}");
+                
+                var originalValue = existingProperty.GetValue(instance);
+                var clonedProperty = CloneValue(existingProperty.PropertyType, originalValue);
+                
+                parameters.Add(clonedProperty);
             }
 
             var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance
                 ? (TInstance) constructorInfo.Invoke(parameters.ToArray())
                 : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
 
-            return (constructedInstance, remainingProperties);
+            return constructedInstance;
             
-            (PropertyInfo ExistingProperty, string PropertyName) TryFindExistingProperty(ParameterInfo parameterInfo)
+            PropertyInfo TryFindExistingProperty(ParameterInfo parameterInfo)
             {
                 // Can we find a matching constructor parameter?
                 if (existingProperties.TryGetValue(parameterInfo.Name, out var existingPropertyByExactMatch))
                 {
-                    return (existingPropertyByExactMatch, parameterInfo.Name);
+                    return existingPropertyByExactMatch;
                 }
 
                 // Can we find a matching constructor parameter if we lowercase both parameter and property name?
@@ -84,8 +73,21 @@ namespace Typesafe.Snapshots
 
                 var existingPropertyByLowercaseMatch = existingProperties[existingPropertyKey];
                 
-                return (existingPropertyByLowercaseMatch, existingPropertyKey);
+                return existingPropertyByLowercaseMatch;
             }
+        }
+
+        private static T CopyProperties(T source, T destination, IEnumerable<PropertyInfo> properties)
+        {
+            foreach (var kvp in properties)
+            {
+                var value = kvp.GetValue(source);
+
+                var clone = CloneValue(kvp.PropertyType, value);
+                kvp.SetValue(destination, clone);
+            }
+
+            return destination;
         }
 
         private static IEnumerable<PropertyInfo> GetCopyProperties(
@@ -117,37 +119,19 @@ namespace Typesafe.Snapshots
             }
         }
 
-        private static T CopyProperties(T source, T destination, IEnumerable<PropertyInfo> properties)
+        private static object CloneValue(Type propertyType, object value)
         {
-            foreach (var kvp in properties)
-            {
-                var value = kvp.GetValue(source);
+            var clone = ReflectionHelper.MakeGenericMethod<TypeBuilder<T>>(
+                    methodName: nameof(InvokeGetSnapshot),
+                    bindingFlags: BindingFlags.Static | BindingFlags.NonPublic,
+                    genericTypes: new[] { propertyType }
+                )
+                .Invoke(null, new[] { value });
 
-                var clone = MakeGenericMethod<TypeBuilder<T>>(
-                        methodName: nameof(TypeBuilder<T>.CloneValue),
-                        bindingFlags: BindingFlags.Static | BindingFlags.NonPublic,
-                        genericTypes: new[] { kvp.PropertyType }
-                    )
-                    .Invoke(null, new object[] { value });
-                kvp.SetValue(destination, clone);
-            }
-
-            return destination;
+            return clone;
         }
 
-        private static MethodInfo MakeGenericMethod<TT>(
-            string methodName,
-            BindingFlags bindingFlags,
-            Type[] genericTypes
-        )
-        {
-            return typeof(TT)
-                       ?.GetMethod(methodName, bindingFlags)
-                       ?.MakeGenericMethod(genericTypes)
-                   ?? throw new Exception($"Cannot make generic method '{methodName}'");
-        }
-        
-        private static T CloneValue<T>(T instance)
+        private static T InvokeGetSnapshot<T>(T instance)
         {
             return instance.GetSnapshot();
         }

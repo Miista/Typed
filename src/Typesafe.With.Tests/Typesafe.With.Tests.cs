@@ -5,6 +5,11 @@ using System.Linq;
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable UnassignedGetOnlyAutoProperty
+// ReSharper disable UnusedAutoPropertyAccessor.Local
+// ReSharper disable ClassNeverInstantiated.Global
 
 // ReSharper disable once CheckNamespace
 namespace Typesafe.With.Tests
@@ -61,13 +66,12 @@ namespace Typesafe.With.Tests
             {
                 public string String { get; }
 
-                public BaseClassWithConstructor(string @string) => String = @string;
+                protected BaseClassWithConstructor(string @string) => String = @string;
             }
 
             internal class ChildClassWithSetterAndInheritedConstructor : BaseClassWithConstructor
             {
                 public int Int { get; set; }
-
 
                 public ChildClassWithSetterAndInheritedConstructor(string @string) : base(@string)
                 {

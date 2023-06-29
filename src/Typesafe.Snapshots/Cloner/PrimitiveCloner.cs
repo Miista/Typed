@@ -4,7 +4,7 @@ namespace Typesafe.Snapshots.Cloner
     {
         public T Clone(T instance)
         {
-            return (T) instance;
+            return instance;
         }
     }
 }

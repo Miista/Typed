@@ -2,10 +2,14 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using AutoFixture;
 using AutoFixture.Xunit2;
 using FluentAssertions;
+using Typesafe.Snapshots.Cloner;
+using Typesafe.Snapshots.Registry;
 using Xunit;
+// ReSharper disable ClassNeverInstantiated.Global
 
 namespace Typesafe.Snapshots.Tests
 {
@@ -54,9 +58,11 @@ namespace Typesafe.Snapshots.Tests
         {
             public class Person
             {
+                // ReSharper disable UnusedAutoPropertyAccessor.Global
                 public string Name { get; set; }
                 public List<int> Ages { get; set; }
                 public StructType ValueType { get; set; }
+                // ReSharper enable UnusedAutoPropertyAccessor.Global
             }
             
             public class StructType
@@ -126,8 +132,8 @@ namespace Typesafe.Snapshots.Tests
             }
             
             [Theory]
-            [ClassData(typeof(TestData.ComplexTypesWithAssertions))]
-            public void Can_create_snapshot_of_complex_type_2<T>(T value, Action<T, T> assertion)
+            [ClassData(typeof(TestData.CollectionTypesWithAssertions))]
+            public void Can_create_snapshot_of_collection_types<T>(T value, Action<T, T> assertion)
             {
                 // Act
                 var snapshot = value.GetSnapshot();
@@ -140,22 +146,63 @@ namespace Typesafe.Snapshots.Tests
             }
         }
 
+        public class InterfaceTests
+        {
+            public interface IName
+            {
+                string Name { get; set; }
+            }
+
+            public class NameImpl : IName
+            {
+                public string Name { get; set; }
+            }
+            
+            public class TypeWithInterfaceProperties
+            {
+                public IName Name { get; set; }
+            }
+
+            [Fact]
+            public void Can_create_snapshot_of_class_with_property_having_an_interface_type()
+            {
+                // Arrange
+                var input = new TypeWithInterfaceProperties { Name = new NameImpl { Name = "Name" } };
+
+                // Act
+                var snapshot = input.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(input, because: "it is a snapshot");
+            }
+            
+            [Fact]
+            public void Can_create_snapshot_of_class_with_interface()
+            {
+                // Arrange
+                IName input = new NameImpl { Name = "Name" };
+
+                // Act
+                var snapshot = input.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(input, because: "it is a snapshot");
+            }
+        }
+
         public class General
         {
             internal class TypeWithPrivateConstructor
             {
-                public string Name { get; set; }
-                
-                private TypeWithPrivateConstructor()
-                {
-                }
+                private TypeWithPrivateConstructor() { }
 
                 public static TypeWithPrivateConstructor Create() => new TypeWithPrivateConstructor();
             }
             
             [Fact]
-            // public void Can_handle_type_with_private_constructor()
-            public void Does_not_throw_on_type_with_private_constructor()
+            public void Throws_on_type_with_private_constructor()
             {
                 // Arrange
                 var typeWithPrivateConstructor = TypeWithPrivateConstructor.Create();
@@ -164,27 +211,151 @@ namespace Typesafe.Snapshots.Tests
                 Action act = () => typeWithPrivateConstructor.GetSnapshot();
 
                 // Assert
-                act.Should().NotThrow();
+                act.Should().Throw<Exception>(because: "the type has a private constructor");
             }
         }
 
+        public class Cloning
+        {
+            // ReSharper disable once ClassNeverInstantiated.Global
+            internal class TypeImplementingICloneableByThrowing : ICloneable
+            {
+                public object Clone() => throw new NotImplementedException();
+            }
+
+            [Theory, AutoData]
+            internal void Calls_Clone_if_type_implements_ICloneable(TypeImplementingICloneableByThrowing instance)
+            {
+                // Act
+                Action act = () => instance.GetSnapshot();
+
+                // Assert
+                act.Should().Throw<NotImplementedException>(because: "the type has implemented the Clone method that way");
+            }
+            
+            // ReSharper disable once ClassNeverInstantiated.Global
+            internal class TypeImplementingICloneable : ICloneable
+            {
+                public object Clone() => (TypeImplementingICloneable) this.MemberwiseClone();
+            }
+
+            [Theory, AutoData]
+            internal void Supports_type_implementing_ICloneable(TypeImplementingICloneable instance)
+            {
+                // Act
+                var snapshot = instance.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(instance);
+            }
+
+            // ReSharper disable once ClassNeverInstantiated.Global
+            internal class TypeWithCopyConstructorByThrowing
+            {
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructorByThrowing() { }
+
+                // ReSharper disable once UnusedParameter.Local
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructorByThrowing(TypeWithCopyConstructorByThrowing otherInstance)
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Calls_copy_constructor_if_type_has_one(TypeWithCopyConstructorByThrowing instance)
+            {
+                // Act
+                Action act = () => instance.GetSnapshot();
+
+                // Assert
+                act.Should().Throw<TargetInvocationException>(because: "the type has implemented the copy constructor that way");
+            }
+            
+            internal class TypeWithCopyConstructor
+            {
+                public string Text { get; }
+
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructor(string text)
+                {
+                    Text = text;
+                }
+
+                // ReSharper disable once UnusedMember.Global
+                public TypeWithCopyConstructor(TypeWithCopyConstructor otherInstance)
+                {
+                    Text = string.Copy(otherInstance.Text);
+                }
+            }
+            
+            [Theory, AutoData]
+            internal void Supports_type_with_copy_constructor(TypeWithCopyConstructor instance)
+            {
+                // Act
+                var snapshot = instance.GetSnapshot();
+
+                // Assert
+                snapshot.Should().NotBeNull();
+                snapshot.Should().NotBeSameAs(instance);
+                snapshot.Text.Should().NotBeSameAs(instance.Text);
+            }
+        }
+        
+        public class TypeRegistrationInAssemblies
+        {
+            private class SpecialType { }
+
+            private class TypeClonerThrowingException : ITypeCloner<SpecialType>
+            {
+                public SpecialType Clone(SpecialType instance) => throw new NotImplementedException();
+            }
+
+            // ReSharper disable once UnusedType.Global
+            public class TypeClonerThrowingExceptionRegistrar : ITypeClonerRegistrar
+            {
+                public void RegisterTypeCloners(ITypeRegistryBuilder typeRegistryBuilder)
+                {
+                    typeRegistryBuilder.RegisterCloner(typeof(SpecialType), new TypeClonerThrowingException());
+                }
+            }
+
+            [Fact]
+            public void Calls_type_cloner_registrars_in_other_assemblies()
+            {
+                // Arrange
+                var specialType = new SpecialType();
+
+                // Act
+                Action act = () => specialType.GetSnapshot();
+
+                // Assert
+                act.Should().Throw<NotImplementedException>();
+            }
+
+        }
+
+        // ReSharper disable once MemberCanBePrivate.Global
         public class TestData
         {
             internal class PrimitiveTypes : IEnumerable<object[]>
             {
                 public IEnumerator<object[]> GetEnumerator()
                 {
-                    yield return new object[] { default(int) };
-                    yield return new object[] { default(short) };
-                    yield return new object[] { default(ushort) };
-                    yield return new object[] { default(uint) };
-                    yield return new object[] { default(ulong) };
-                    yield return new object[] { default(long) };
+                    yield return new object[] { default(bool) };
+                    yield return new object[] { default(byte) };
+                    yield return new object[] { default(char) };
                     yield return new object[] { default(double) };
                     yield return new object[] { default(float) };
-                    yield return new object[] { default(bool) };
-                    yield return new object[] { default(char) };
-                    yield return new object[] { default(byte) };
+                    yield return new object[] { default(int) };
+                    yield return new object[] { default(long) };
+                    yield return new object[] { default(sbyte) };
+                    yield return new object[] { default(short) };
+                    yield return new object[] { default(uint) };
+                    yield return new object[] { default(ulong) };
+                    yield return new object[] { default(ushort) };
                 }
 
                 IEnumerator IEnumerable.GetEnumerator()
@@ -193,43 +364,77 @@ namespace Typesafe.Snapshots.Tests
                 }
             }
 
-            internal class ComplexTypes : ComplexTypesWithAssertions
+            internal class ComplexTypes : CollectionTypesWithAssertions, IEnumerable<object[]>
             {
                 public override IEnumerator<object[]> GetEnumerator()
                 {
+                    var fixture = new Fixture();
+
+                    yield return TestCase(fixture.Create<Guid>());
+
                     using (var enumerator = base.GetEnumerator())
                     {
                         while (enumerator.MoveNext())
                         {
+                            // Return only the type
+                            // ReSharper disable once PossibleNullReferenceException
                             yield return new[] { enumerator.Current[0] };
                         }
                     }
+                    
+                    object[] TestCase<T>(T value)
+                    {
+                        return new object[] { value };
+                    }
                 }
+
+                IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
             }
 
-            internal class ComplexTypesWithAssertions : IEnumerable<object[]>
+            internal class CollectionTypesWithAssertions : IEnumerable<object[]>
             {
                 public virtual IEnumerator<object[]> GetEnumerator()
                 {
-                    object[] TestCase<T>(T value, Action<T, T> assertion)
-                    {
-                        return new object[] { value, assertion };
-                    }
-
                     var fixture = new Fixture();
 
                     yield return TestCase(
-                        fixture.CreateMany<int>().ToList(),
+                        fixture.CreateMany<int>().ToArray(),
                         (original, snapshot) =>
                         {
                             snapshot.Should().BeEquivalentTo(original);
                             snapshot.Should().ContainInOrder(original);
                         }
                     );
+                    
                     yield return TestCase(
-                        fixture.Create<Guid>(),
-                        (original, snapshot) => snapshot.Should().Be(original)
+                        new List<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
                     );
+                    
+                    yield return TestCase(
+                        new SortedList<int, int>(fixture.Create<Dictionary<int, int>>(), Comparer<int>.Default),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainKeys(original.Keys);
+                            snapshot.Should().ContainValues(original.Values);
+                            snapshot.Should().HaveSameCount(original);
+                        }
+                    );
+                    
+                    yield return TestCase(
+                        new LinkedList<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+
                     yield return TestCase(
                         fixture.Create<Dictionary<string, string>>(),
                         (original, snapshot) =>
@@ -238,6 +443,16 @@ namespace Typesafe.Snapshots.Tests
                             snapshot.Should().Contain(original);
                         }
                     );
+                    
+                    yield return TestCase(
+                        fixture.Create<SortedDictionary<string, string>>(),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().Contain(original);
+                        }
+                    );
+
                     yield return TestCase(
                         new Queue<int>(fixture.CreateMany<int>()),
                         (original, snapshot) =>
@@ -246,6 +461,25 @@ namespace Typesafe.Snapshots.Tests
                             snapshot.Should().ContainInOrder(original);
                         }
                     );
+                    
+                    yield return TestCase(
+                        new HashSet<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+                    
+                    yield return TestCase(
+                        new SortedSet<int>(fixture.CreateMany<int>()),
+                        (original, snapshot) =>
+                        {
+                            snapshot.Should().BeEquivalentTo(original);
+                            snapshot.Should().ContainInOrder(original);
+                        }
+                    );
+
                     yield return TestCase(
                         new Stack<int>(fixture.CreateMany<int>()),
                         (original, snapshot) =>
@@ -253,6 +487,11 @@ namespace Typesafe.Snapshots.Tests
                             snapshot.Should().BeEquivalentTo(original);
                             snapshot.Should().ContainInOrder(original);
                         });
+
+                    object[] TestCase<T>(T value, Action<T, T> assertion)
+                    {
+                        return new object[] { value, assertion };
+                    }
                 }
 
                 IEnumerator IEnumerable.GetEnumerator()

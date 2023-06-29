@@ -1,0 +1,131 @@
+// Compile with ilasm /dll <name>
+.assembly A
+{
+    .hash algorithm 0x00008004 // SHA1
+    .ver 0:0:0:0
+}
+
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class public auto ansi X.B
+    extends System.Object
+{
+    .field private int32 '<M>__BackingField'
+    .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+        01 00 00 00
+    )
+    .custom instance void [System.Runtime]System.Diagnostics.DebuggerBrowsableAttribute::.ctor(valuetype [System.Runtime]System.Diagnostics.DebuggerBrowsableState) = (
+        01 00 00 00 00 00 00 00
+    )
+    
+    .method public hidebysig specialname rtspecialname
+        instance void .ctor () cil managed
+    {
+        ldarg.0
+        call instance void [mscorlib]System.Object::.ctor()
+        nop
+        nop
+        ret
+    }
+    
+    .method public hidebysig specialname
+        instance void set_M (
+            int32 'value'
+        ) cil managed
+    {
+        .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+            01 00 00 00
+        )
+        
+        .maxstack 8
+        
+        ldarg.0
+        ldarg.1
+        stfld int32 X.B::'<M>__BackingField'
+        ret
+    }
+    
+    .method public hidebysig specialname
+        instance int32 get_M ()
+        cil managed
+    {
+        .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+            01 00 00 00
+        )
+        
+        .maxstack 8
+        
+        ldarg.0
+        ldfld int32 X.B::'<M>__BackingField'
+        ret
+    }
+    
+    .property instance int32 M()
+    {
+        .get instance int32 X.B::get_M()
+        .set instance void X.B::set_M(int32)
+    }
+}
+
+.class public auto ansi X.C
+    extends X.B
+{
+    .field private initonly class X.B _instance
+    .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+        01 00 00 00
+    )
+    //.custom instance void [System.Runtime]System.Diagnostics.DebuggerBrowsableAttribute::.ctor(valuetype [System.Runtime]System.Diagnostics.DebuggerBrowsableState) = (
+    //    01 00 00 00 00 00 00 00
+    //)
+    
+    .method public hidebysig specialname rtspecialname
+        instance void .ctor (
+            class X.B 'instance'
+        ) cil managed
+    {
+        ldarg.0
+        call instance void X.B::.ctor()
+        ldarg.0
+        ldarg.1
+        stfld class X.B X.C::'_instance'
+        nop
+        nop
+        ret
+    }
+    
+    .method public specialname
+        instance void set_M (
+            int32 'value'
+        ) cil managed
+    {
+        .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+            01 00 00 00
+        )
+        
+        .maxstack 8
+        
+        ldarg.0
+        ldfld class X.B X.C::'_instance'
+        ldarg.1
+        stfld int32 X.B::'<M>__BackingField'
+        ret
+    }
+    
+    .method public specialname
+        instance int32 get_M ()
+        cil managed
+    {
+        .custom instance void [System.Runtime]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+            01 00 00 00
+        )
+        
+        .maxstack 8
+        
+        ldarg.0
+        ldfld class X.B X.C::'_instance'
+        call int32 X.B::get_M()
+        ret
+    }
+}
