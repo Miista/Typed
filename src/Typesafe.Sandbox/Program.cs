@@ -238,10 +238,17 @@ namespace Typesafe.Sandbox
     
     class Program
     {
-        interface IP
+        interface IAge
+        {
+            int Age { get; set; }
+        }
+
+        interface IName
         {
             string Name { get; set; }
-            int Age { get; set; }
+        }
+        interface IP : IAge, IName
+        {
         }
         
         class P : IP
@@ -255,14 +262,10 @@ namespace Typesafe.Sandbox
         {
             [DebuggerBrowsable(DebuggerBrowsableState.Never)]
             private T _decorated;
-            
-            protected override object Invoke(MethodInfo targetMethod, object[] args)
-            {
-                var result = targetMethod.Invoke(_decorated, args);
 
-                return result;
-            }
-            
+            protected override object Invoke(MethodInfo targetMethod, object[] args) =>
+                targetMethod.Invoke(_decorated, args);
+
             public static T Create(T decorated)
             {
                 object proxy = Create<T, Proxy<T>>();
@@ -273,10 +276,8 @@ namespace Typesafe.Sandbox
 
             private void SetParameters(T decorated)
             {
-                if (decorated == null)
-                {
-                    throw new ArgumentNullException(nameof(decorated));
-                }
+                if (decorated == null) throw new ArgumentNullException(nameof(decorated));
+                
                 _decorated = decorated;
             }
         }

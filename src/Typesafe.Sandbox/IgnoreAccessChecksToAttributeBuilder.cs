@@ -18,23 +18,23 @@ namespace System.Reflection.Emit
         /// </summary>
         public static ConstructorInfo AddToModule(ModuleBuilder mb)
         {
-            TypeBuilder attributeTypeBuilder =
+            var attributeTypeBuilder =
                 mb.DefineType("System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute",
                                TypeAttributes.Public | TypeAttributes.Class,
                                typeof(Attribute));
 
             // Create backing field as:
             // private string assemblyName;
-            FieldBuilder assemblyNameField =
+            var assemblyNameField =
                 attributeTypeBuilder.DefineField("assemblyName", typeof(string), FieldAttributes.Private);
 
             // Create ctor as:
             // public IgnoresAccessChecksToAttribute(string)
-            ConstructorBuilder constructorBuilder = attributeTypeBuilder.DefineConstructor(MethodAttributes.Public,
+            var constructorBuilder = attributeTypeBuilder.DefineConstructor(MethodAttributes.Public,
                                                          CallingConventions.HasThis,
                                                          new Type[] { assemblyNameField.FieldType });
 
-            ILGenerator il = constructorBuilder.GetILGenerator();
+            var il = constructorBuilder.GetILGenerator();
 
             // Create ctor body as:
             // this.assemblyName = {ctor parameter 0}
@@ -47,14 +47,14 @@ namespace System.Reflection.Emit
 
             // Define property as:
             // public string AssemblyName {get { return this.assemblyName; } }
-            PropertyBuilder propertyBuilder = attributeTypeBuilder.DefineProperty(
+            var propertyBuilder = attributeTypeBuilder.DefineProperty(
                     "AssemblyName",
                     PropertyAttributes.None,
                     CallingConventions.HasThis,
                     returnType: typeof(string),
                     parameterTypes: null);
 
-            MethodBuilder getterMethodBuilder = attributeTypeBuilder.DefineMethod(
+            var getterMethodBuilder = attributeTypeBuilder.DefineMethod(
                                                    "get_AssemblyName",
                                                    MethodAttributes.Public,
                                                    CallingConventions.HasThis,
@@ -71,21 +71,21 @@ namespace System.Reflection.Emit
 
             // Generate the AttributeUsage attribute for this attribute type:
             // [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-            TypeInfo attributeUsageTypeInfo = typeof(AttributeUsageAttribute).GetTypeInfo();
+            var attributeUsageTypeInfo = typeof(AttributeUsageAttribute).GetTypeInfo();
 
             // Find the ctor that takes only AttributeTargets
-            ConstructorInfo attributeUsageConstructorInfo =
+            var attributeUsageConstructorInfo =
                 attributeUsageTypeInfo.DeclaredConstructors
                     .Single(c => c.GetParameters().Length == 1 &&
                                  c.GetParameters()[0].ParameterType == typeof(AttributeTargets));
 
             // Find the property to set AllowMultiple
-            PropertyInfo allowMultipleProperty =
+            var allowMultipleProperty =
                 attributeUsageTypeInfo.DeclaredProperties
                     .Single(f => string.Equals(f.Name, "AllowMultiple"));
 
             // Create a builder to construct the instance via the ctor and property
-            CustomAttributeBuilder customAttributeBuilder =
+            var customAttributeBuilder =
                 new CustomAttributeBuilder(attributeUsageConstructorInfo,
                                             new object[] { AttributeTargets.Assembly },
                                             new PropertyInfo[] { allowMultipleProperty },

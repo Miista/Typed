@@ -68,7 +68,7 @@ namespace System.Reflection
             Debug.Assert(baseType != null);
             Debug.Assert(interfaceType != null);
 
-            Type proxiedType = GetProxyType(baseType, interfaceType);
+            var proxiedType = GetProxyType(baseType, interfaceType);
             return Activator.CreateInstance(proxiedType, (Action<object[]>)DispatchProxyGenerator.Invoke);
         }
 
@@ -76,13 +76,13 @@ namespace System.Reflection
         {
             lock (s_baseTypeAndInterfaceToGeneratedProxyType)
             {
-                if (!s_baseTypeAndInterfaceToGeneratedProxyType.TryGetValue(baseType, out Dictionary<Type, Type> interfaceToProxy))
+                if (!s_baseTypeAndInterfaceToGeneratedProxyType.TryGetValue(baseType, out var interfaceToProxy))
                 {
                     interfaceToProxy = new Dictionary<Type, Type>();
                     s_baseTypeAndInterfaceToGeneratedProxyType[baseType] = interfaceToProxy;
                 }
 
-                if (!interfaceToProxy.TryGetValue(interfaceType, out Type generatedProxy))
+                if (!interfaceToProxy.TryGetValue(interfaceType, out var generatedProxy))
                 {
                     generatedProxy = GenerateProxyType(baseType, interfaceType);
                     interfaceToProxy[interfaceType] = generatedProxy;
@@ -97,7 +97,7 @@ namespace System.Reflection
         {
             // Parameter validation is deferred until the point we need to create the proxy.
             // This prevents unnecessary overhead revalidating cached proxy types.
-            TypeInfo baseTypeInfo = baseType.GetTypeInfo();
+            var baseTypeInfo = baseType.GetTypeInfo();
 
             // The interface type must be an interface, not a class
             if (!interfaceType.GetTypeInfo().IsInterface)
@@ -126,14 +126,14 @@ namespace System.Reflection
             }
 
             // Create a type that derives from 'baseType' provided by caller
-            ProxyBuilder pb = s_proxyAssembly.CreateProxy("generatedProxy", baseType);
+            var pb = s_proxyAssembly.CreateProxy("generatedProxy", baseType);
 
-            foreach (Type t in interfaceType.GetTypeInfo().ImplementedInterfaces)
+            foreach (var t in interfaceType.GetTypeInfo().ImplementedInterfaces)
                 pb.AddInterfaceImpl(t);
 
             pb.AddInterfaceImpl(interfaceType);
 
-            Type generatedProxyType = pb.CreateType();
+            var generatedProxyType = pb.CreateType();
             return generatedProxyType;
         }
 
@@ -142,8 +142,8 @@ namespace System.Reflection
         // to the (abstract) DispatchProxy.Invoke() method.
         private static void Invoke(object[] args)
         {
-            PackedArgs packed = new PackedArgs(args);
-            MethodBase method = s_proxyAssembly.ResolveMethodToken(packed.DeclaringType, packed.MethodToken);
+            var packed = new PackedArgs(args);
+            var method = s_proxyAssembly.ResolveMethodToken(packed.DeclaringType, packed.MethodToken);
             if (method.IsGenericMethodDefinition)
                 method = ((MethodInfo)method).MakeGenericMethod(packed.GenericTypes);
 
@@ -151,7 +151,7 @@ namespace System.Reflection
             try
             {
                 Debug.Assert(s_dispatchProxyInvokeMethod != null);
-                object returnValue = s_dispatchProxyInvokeMethod.Invoke(packed.DispatchProxy,
+                var returnValue = s_dispatchProxyInvokeMethod.Invoke(packed.DispatchProxy,
                                                                        new object[] { method, packed.Args });
                 packed.ReturnValue = returnValue;
             }
@@ -221,8 +221,8 @@ namespace System.Reflection
             }
             public ProxyBuilder CreateProxy(string name, Type proxyBaseType)
             {
-                int nextId = Interlocked.Increment(ref _typeId);
-                TypeBuilder tb = _mb.DefineType(name + "_" + nextId, TypeAttributes.Public, proxyBaseType);
+                var nextId = Interlocked.Increment(ref _typeId);
+                var tb = _mb.DefineType(name + "_" + nextId, TypeAttributes.Public, proxyBaseType);
                 return new ProxyBuilder(this, tb, proxyBaseType);
             }
 
@@ -233,8 +233,8 @@ namespace System.Reflection
             {
                 // Add this assembly level attribute:
                 // [assembly: System.Runtime.CompilerServices.IgnoresAccessChecksToAttribute(assemblyName)]
-                ConstructorInfo attributeConstructor = IgnoresAccessChecksAttributeConstructor;
-                CustomAttributeBuilder customAttributeBuilder =
+                var attributeConstructor = IgnoresAccessChecksAttributeConstructor;
+                var customAttributeBuilder =
                     new CustomAttributeBuilder(attributeConstructor, new object[] { assemblyName });
                 _ab.SetCustomAttribute(customAttributeBuilder);
             }
@@ -244,10 +244,10 @@ namespace System.Reflection
             // allows access from the dynamic assembly.
             internal void EnsureTypeIsVisible(Type type)
             {
-                TypeInfo typeInfo = type.GetTypeInfo();
+                var typeInfo = type.GetTypeInfo();
                 if (!typeInfo.IsVisible)
                 {
-                    string assemblyName = typeInfo.Assembly.GetName().Name;
+                    var assemblyName = typeInfo.Assembly.GetName().Name;
                     if (!_ignoresAccessAssemblyNames.Contains(assemblyName))
                     {
                         GenerateInstanceOfIgnoresAccessChecksToAttribute(assemblyName);
@@ -297,24 +297,24 @@ namespace System.Reflection
 
             private void Complete()
             {
-                Type[] args = new Type[_fields.Count];
-                for (int i = 0; i < args.Length; i++)
+                var args = new Type[_fields.Count];
+                for (var i = 0; i < args.Length; i++)
                 {
                     args[i] = _fields[i].FieldType;
                 }
 
-                ConstructorBuilder cb = _tb.DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, args);
-                ILGenerator il = cb.GetILGenerator();
+                var cb = _tb.DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, args);
+                var il = cb.GetILGenerator();
 
                 // chained ctor call
-                ConstructorInfo baseCtor = _proxyBaseType.GetTypeInfo().DeclaredConstructors.SingleOrDefault(c => c.IsPublic && c.GetParameters().Length == 0);
+                var baseCtor = _proxyBaseType.GetTypeInfo().DeclaredConstructors.SingleOrDefault(c => c.IsPublic && c.GetParameters().Length == 0);
                 Debug.Assert(baseCtor != null);
 
                 il.Emit(OpCodes.Ldarg_0);
                 il.Emit(OpCodes.Call, baseCtor);
 
                 // store all the fields
-                for (int i = 0; i < args.Length; i++)
+                for (var i = 0; i < args.Length; i++)
                 {
                     il.Emit(OpCodes.Ldarg_0);
                     il.Emit(OpCodes.Ldarg, i + 1);
@@ -340,7 +340,7 @@ namespace System.Reflection
 
                 // AccessorMethods -> Metadata mappings.
                 var propertyMap = new Dictionary<MethodInfo, PropertyAccessorInfo>(MethodInfoEqualityComparer.Instance);
-                foreach (PropertyInfo pi in iface.GetRuntimeProperties())
+                foreach (var pi in iface.GetRuntimeProperties())
                 {
                     var ai = new PropertyAccessorInfo(pi.GetMethod, pi.SetMethod);
                     if (pi.GetMethod != null)
@@ -350,7 +350,7 @@ namespace System.Reflection
                 }
 
                 var eventMap = new Dictionary<MethodInfo, EventAccessorInfo>(MethodInfoEqualityComparer.Instance);
-                foreach (EventInfo ei in iface.GetRuntimeEvents())
+                foreach (var ei in iface.GetRuntimeEvents())
                 {
                     var ai = new EventAccessorInfo(ei.AddMethod, ei.RemoveMethod, ei.RaiseMethod);
                     if (ei.AddMethod != null)
@@ -361,15 +361,15 @@ namespace System.Reflection
                         eventMap[ei.RaiseMethod] = ai;
                 }
 
-                foreach (MethodInfo mi in iface.GetRuntimeMethods())
+                foreach (var mi in iface.GetRuntimeMethods())
                 {
                     // Skip regular/non-virtual instance methods, static methods, and methods that cannot be overriden
                     // ("methods that cannot be overriden" includes default implementation of other interface methods).
                     if (!mi.IsVirtual || mi.IsFinal)
                         continue;
 
-                    MethodBuilder mdb = AddMethodImpl(mi);
-                    if (propertyMap.TryGetValue(mi, out PropertyAccessorInfo associatedProperty))
+                    var mdb = AddMethodImpl(mi);
+                    if (propertyMap.TryGetValue(mi, out var associatedProperty))
                     {
                         if (MethodInfoEqualityComparer.Instance.Equals(associatedProperty.InterfaceGetMethod, mi))
                             associatedProperty.GetMethodBuilder = mdb;
@@ -377,7 +377,7 @@ namespace System.Reflection
                             associatedProperty.SetMethodBuilder = mdb;
                     }
 
-                    if (eventMap.TryGetValue(mi, out EventAccessorInfo associatedEvent))
+                    if (eventMap.TryGetValue(mi, out var associatedEvent))
                     {
                         if (MethodInfoEqualityComparer.Instance.Equals(associatedEvent.InterfaceAddMethod, mi))
                             associatedEvent.AddMethodBuilder = mdb;
@@ -388,9 +388,9 @@ namespace System.Reflection
                     }
                 }
 
-                foreach (PropertyInfo pi in iface.GetRuntimeProperties())
+                foreach (var pi in iface.GetRuntimeProperties())
                 {
-                    PropertyAccessorInfo ai = propertyMap[pi.GetMethod ?? pi.SetMethod];
+                    var ai = propertyMap[pi.GetMethod ?? pi.SetMethod];
 
                     // If we didn't make an overriden accessor above, this was a static property, non-virtual property,
                     // or a default implementation of a property of a different interface. In any case, we don't need
@@ -398,16 +398,16 @@ namespace System.Reflection
                     if (ai.GetMethodBuilder == null && ai.SetMethodBuilder == null)
                         continue;
 
-                    PropertyBuilder pb = _tb.DefineProperty(pi.Name, pi.Attributes, pi.PropertyType, pi.GetIndexParameters().Select(p => p.ParameterType).ToArray());
+                    var pb = _tb.DefineProperty(pi.Name, pi.Attributes, pi.PropertyType, pi.GetIndexParameters().Select(p => p.ParameterType).ToArray());
                     if (ai.GetMethodBuilder != null)
                         pb.SetGetMethod(ai.GetMethodBuilder);
                     if (ai.SetMethodBuilder != null)
                         pb.SetSetMethod(ai.SetMethodBuilder);
                 }
 
-                foreach (EventInfo ei in iface.GetRuntimeEvents())
+                foreach (var ei in iface.GetRuntimeEvents())
                 {
-                    EventAccessorInfo ai = eventMap[ei.AddMethod ?? ei.RemoveMethod];
+                    var ai = eventMap[ei.AddMethod ?? ei.RemoveMethod];
 
                     // If we didn't make an overriden accessor above, this was a static event, non-virtual event,
                     // or a default implementation of an event of a different interface. In any case, we don't
@@ -416,7 +416,7 @@ namespace System.Reflection
                         continue;
 
                     Debug.Assert(ei.EventHandlerType != null);
-                    EventBuilder eb = _tb.DefineEvent(ei.Name, ei.Attributes, ei.EventHandlerType);
+                    var eb = _tb.DefineEvent(ei.Name, ei.Attributes, ei.EventHandlerType);
                     if (ai.AddMethodBuilder != null)
                         eb.SetAddOnMethod(ai.AddMethodBuilder);
                     if (ai.RemoveMethodBuilder != null)
@@ -428,36 +428,36 @@ namespace System.Reflection
 
             private MethodBuilder AddMethodImpl(MethodInfo mi)
             {
-                ParameterInfo[] parameters = mi.GetParameters();
-                Type[] paramTypes = ParamTypes(parameters, false);
+                var parameters = mi.GetParameters();
+                var paramTypes = ParamTypes(parameters, false);
 
-                MethodBuilder mdb = _tb.DefineMethod(mi.Name, MethodAttributes.Public | MethodAttributes.Virtual, mi.ReturnType, paramTypes);
+                var mdb = _tb.DefineMethod(mi.Name, MethodAttributes.Public | MethodAttributes.Virtual, mi.ReturnType, paramTypes);
                 if (mi.ContainsGenericParameters)
                 {
-                    Type[] ts = mi.GetGenericArguments();
-                    string[] ss = new string[ts.Length];
-                    for (int i = 0; i < ts.Length; i++)
+                    var ts = mi.GetGenericArguments();
+                    var ss = new string[ts.Length];
+                    for (var i = 0; i < ts.Length; i++)
                     {
                         ss[i] = ts[i].Name;
                     }
-                    GenericTypeParameterBuilder[] genericParameters = mdb.DefineGenericParameters(ss);
-                    for (int i = 0; i < genericParameters.Length; i++)
+                    var genericParameters = mdb.DefineGenericParameters(ss);
+                    for (var i = 0; i < genericParameters.Length; i++)
                     {
                         genericParameters[i].SetGenericParameterAttributes(ts[i].GetTypeInfo().GenericParameterAttributes);
                     }
                 }
-                ILGenerator il = mdb.GetILGenerator();
+                var il = mdb.GetILGenerator();
 
-                ParametersArray args = new ParametersArray(il, paramTypes);
+                var args = new ParametersArray(il, paramTypes);
 
                 // object[] args = new object[paramCount];
                 il.Emit(OpCodes.Nop);
-                GenericArray<object> argsArr = new GenericArray<object>(il, ParamTypes(parameters, true).Length);
+                var argsArr = new GenericArray<object>(il, ParamTypes(parameters, true).Length);
 
-                for (int i = 0; i < parameters.Length; i++)
+                for (var i = 0; i < parameters.Length; i++)
                 {
                     // args[i] = argi;
-                    bool isOutRef = parameters[i].IsOut && parameters[i].ParameterType.IsByRef && !parameters[i].IsIn;
+                    var isOutRef = parameters[i].IsOut && parameters[i].ParameterType.IsByRef && !parameters[i].IsIn;
 
                     if (!isOutRef)
                     {
@@ -468,7 +468,7 @@ namespace System.Reflection
                 }
 
                 // object[] packed = new object[PackedArgs.PackedTypes.Length];
-                GenericArray<object> packedArr = new GenericArray<object>(il, PackedArgs.PackedTypes.Length);
+                var packedArr = new GenericArray<object>(il, PackedArgs.PackedTypes.Length);
 
                 // packed[PackedArgs.DispatchProxyPosition] = this;
                 packedArr.BeginSet(PackedArgs.DispatchProxyPosition);
@@ -476,8 +476,8 @@ namespace System.Reflection
                 packedArr.EndSet(typeof(DispatchProxy));
 
                 // packed[PackedArgs.DeclaringTypePosition] = typeof(iface);
-                MethodInfo Type_GetTypeFromHandle = typeof(Type).GetRuntimeMethod("GetTypeFromHandle", new Type[] { typeof(RuntimeTypeHandle) });
-                _assembly.GetTokenForMethod(mi, out Type declaringType, out int methodToken);
+                var Type_GetTypeFromHandle = typeof(Type).GetRuntimeMethod("GetTypeFromHandle", new Type[] { typeof(RuntimeTypeHandle) });
+                _assembly.GetTokenForMethod(mi, out var declaringType, out var methodToken);
                 packedArr.BeginSet(PackedArgs.DeclaringTypePosition);
                 il.Emit(OpCodes.Ldtoken, declaringType);
                 il.Emit(OpCodes.Call, Type_GetTypeFromHandle);
@@ -497,9 +497,9 @@ namespace System.Reflection
                 if (mi.ContainsGenericParameters)
                 {
                     packedArr.BeginSet(PackedArgs.GenericTypesPosition);
-                    Type[] genericTypes = mi.GetGenericArguments();
-                    GenericArray<Type> typeArr = new GenericArray<Type>(il, genericTypes.Length);
-                    for (int i = 0; i < genericTypes.Length; ++i)
+                    var genericTypes = mi.GetGenericArguments();
+                    var typeArr = new GenericArray<Type>(il, genericTypes.Length);
+                    for (var i = 0; i < genericTypes.Length; ++i)
                     {
                         typeArr.BeginSet(i);
                         il.Emit(OpCodes.Ldtoken, genericTypes[i]);
@@ -516,7 +516,7 @@ namespace System.Reflection
                 packedArr.Load();
                 il.Emit(OpCodes.Call, s_delegateInvoke);
 
-                for (int i = 0; i < parameters.Length; i++)
+                for (var i = 0; i < parameters.Length; i++)
                 {
                     if (parameters[i].ParameterType.IsByRef)
                     {
@@ -540,8 +540,8 @@ namespace System.Reflection
 
             private static Type[] ParamTypes(ParameterInfo[] parms, bool noByRef)
             {
-                Type[] types = new Type[parms.Length];
-                for (int i = 0; i < parms.Length; i++)
+                var types = new Type[parms.Length];
+                for (var i = 0; i < parms.Length; i++)
                 {
                     types[i] = parms[i].ParameterType;
                     if (noByRef && types[i].IsByRef)
@@ -681,13 +681,13 @@ namespace System.Reflection
                 if (target == source)
                     return;
 
-                TypeInfo sourceTypeInfo = source.GetTypeInfo();
-                TypeInfo targetTypeInfo = target.GetTypeInfo();
+                var sourceTypeInfo = source.GetTypeInfo();
+                var targetTypeInfo = target.GetTypeInfo();
 
                 if (source.IsByRef)
                 {
                     Debug.Assert(!isAddress);
-                    Type argType = source.GetElementType();
+                    var argType = source.GetElementType();
                     Ldind(il, argType);
                     Convert(il, argType, target, isAddress);
                     return;
@@ -696,7 +696,7 @@ namespace System.Reflection
                 {
                     if (sourceTypeInfo.IsValueType)
                     {
-                        OpCode opCode = s_convOpCodes[GetTypeCode(target)];
+                        var opCode = s_convOpCodes[GetTypeCode(target)];
                         Debug.Assert(!opCode.Equals(OpCodes.Nop));
                         il.Emit(opCode);
                     }
@@ -733,7 +733,7 @@ namespace System.Reflection
 
             private static void Ldind(ILGenerator il, Type type)
             {
-                OpCode opCode = s_ldindOpCodes[GetTypeCode(type)];
+                var opCode = s_ldindOpCodes[GetTypeCode(type)];
                 if (!opCode.Equals(OpCodes.Nop))
                 {
                     il.Emit(opCode);
@@ -746,7 +746,7 @@ namespace System.Reflection
 
             private static void Stind(ILGenerator il, Type type)
             {
-                OpCode opCode = s_stindOpCodes[GetTypeCode(type)];
+                var opCode = s_stindOpCodes[GetTypeCode(type)];
                 if (!opCode.Equals(OpCodes.Nop))
                 {
                     il.Emit(opCode);
@@ -780,7 +780,7 @@ namespace System.Reflection
                 internal void EndSet(int i, Type stackType)
                 {
                     Debug.Assert(_paramTypes[i].IsByRef);
-                    Type argType = _paramTypes[i].GetElementType();
+                    var argType = _paramTypes[i].GetElementType();
                     Convert(_il, stackType, argType, false);
                     Stind(_il, argType);
                 }
@@ -890,23 +890,23 @@ namespace System.Reflection
                     if (left.Name != right.Name)
                         return false;
 
-                    Type[] leftGenericParameters = left.GetGenericArguments();
-                    Type[] rightGenericParameters = right.GetGenericArguments();
+                    var leftGenericParameters = left.GetGenericArguments();
+                    var rightGenericParameters = right.GetGenericArguments();
                     if (leftGenericParameters.Length != rightGenericParameters.Length)
                         return false;
 
-                    for (int i = 0; i < leftGenericParameters.Length; i++)
+                    for (var i = 0; i < leftGenericParameters.Length; i++)
                     {
                         if (!Equals(leftGenericParameters[i], rightGenericParameters[i]))
                             return false;
                     }
 
-                    ParameterInfo[] leftParameters = left.GetParameters();
-                    ParameterInfo[] rightParameters = right.GetParameters();
+                    var leftParameters = left.GetParameters();
+                    var rightParameters = right.GetParameters();
                     if (leftParameters.Length != rightParameters.Length)
                         return false;
 
-                    for (int i = 0; i < leftParameters.Length; i++)
+                    for (var i = 0; i < leftParameters.Length; i++)
                     {
                         if (!Equals(leftParameters[i].ParameterType, rightParameters[i].ParameterType))
                             return false;
@@ -921,9 +921,9 @@ namespace System.Reflection
                         return 0;
 
                     Debug.Assert(obj.DeclaringType != null);
-                    int hashCode = obj.DeclaringType.GetHashCode();
+                    var hashCode = obj.DeclaringType.GetHashCode();
                     hashCode ^= obj.Name.GetHashCode();
-                    foreach (ParameterInfo parameter in obj.GetParameters())
+                    foreach (var parameter in obj.GetParameters())
                     {
                         hashCode ^= parameter.ParameterType.GetHashCode();
                     }
