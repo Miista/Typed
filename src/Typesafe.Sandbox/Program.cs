@@ -13,11 +13,11 @@ namespace Typesafe.Sandbox
 {
     public class Nothing
     {
-        public string Text { get; set; }
+        public virtual string Text { get; set; }
 
         public override string ToString() => Text;
 
-        public string X() => Text;
+        public virtual string X() => Text;
     }
     
     public class Person
@@ -238,8 +238,55 @@ namespace Typesafe.Sandbox
     
     class Program
     {
+        interface IP
+        {
+            string Name { get; set; }
+            int Age { get; set; }
+        }
+        
+        class P : IP
+        {
+            public string Name { get; set; }
+            public int Age { get; set; }
+        }
+
+        [DebuggerDisplay("Not snapshot")]
+        class Proxy<T> : DispatchProxy
+        {
+            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+            private T _decorated;
+            
+            protected override object Invoke(MethodInfo targetMethod, object[] args)
+            {
+                var result = targetMethod.Invoke(_decorated, args);
+
+                return result;
+            }
+            
+            public static T Create(T decorated)
+            {
+                object proxy = Create<T, Proxy<T>>();
+                ((Proxy<T>)proxy).SetParameters(decorated);
+
+                return (T)proxy;
+            }
+
+            private void SetParameters(T decorated)
+            {
+                if (decorated == null)
+                {
+                    throw new ArgumentNullException(nameof(decorated));
+                }
+                _decorated = decorated;
+            }
+        }
+        
         static void Main(string[] args)
         {
+            var p = new P { Name = "Hello", Age = 1};
+
+            var proxyForP = Proxy<IP>.Create(p);
+
             // Debug wrapper
             {
                 var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
@@ -249,6 +296,7 @@ namespace Typesafe.Sandbox
 
                 var nothing = new Nothing { Text = "Hello" };
                 var instanceFor2 = DynamicProxyGenerator.GetInstanceFor<Nothing>(nothing);
+                Console.WriteLine(instanceFor2.Text);
                 var x = instanceFor2.Text;
                 instanceFor2.Text = "wee";
                 // var person = LoggingDecorator<Person>.Create(ron);
