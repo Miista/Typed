@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
 using Typesafe.Merge;
 using Typesafe.Sandbox;
 using Typesafe.With;
@@ -42,21 +41,6 @@ namespace Typesafe.Sandbox
         }
     }
 
-    [DebuggerDisplay("Not snapshot: {Value}")]
-    class DebuggerWrapper<T>
-    {
-        public readonly T Value;
-
-        private DebuggerWrapper(T instance)
-        {
-            Value = instance;
-        }
-
-        public static implicit operator DebuggerWrapper<T>(T instance) => new DebuggerWrapper<T>(instance);
-
-        public static implicit operator T(DebuggerWrapper<T> wrapper) => wrapper.Value;
-    }
-
     public struct ValueType
     {
         public int Age { get; set; }
@@ -86,156 +70,7 @@ namespace Typesafe.Sandbox
         Gryffindor,
         Slytherin
     }
-    
-    public static class DynamicProxyGenerator
-    {
-        public static T GetInstanceFor<T>(T existing)
-        {
-            var typeOfT = typeof(T);
-            var methodInfos = typeOfT.GetMethods();
-            var assName = new AssemblyName(typeOfT.Assembly.FullName);
-            var assBuilder = AssemblyBuilder.DefineDynamicAssembly(assName, AssemblyBuilderAccess.Run);
-            // var assBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assName, AssemblyBuilderAccess.RunAndSave);
-            var moduleBuilder = assBuilder.DefineDynamicModule(typeOfT.Module.Name); //, "test.dll");
-            var typeBuilder = moduleBuilder.DefineType(typeOfT.Name + "Proxy", TypeAttributes.BeforeFieldInit);
 
-            // typeBuilder.AddInterfaceImplementation(typeOfT);
-            typeBuilder.SetParent(typeOfT);
-            var fieldBuilder = typeBuilder.DefineField("_value", typeOfT, FieldAttributes.Private | FieldAttributes.InitOnly);
-            var ctorBuilder = typeBuilder.DefineConstructor(
-                MethodAttributes.Public,
-                CallingConventions.Standard,
-                new Type[] {typeOfT});
-            var ilGenerator = ctorBuilder.GetILGenerator();
-            ilGenerator.EmitWriteLine("Creating Proxy instance");
-            ilGenerator.Emit(OpCodes.Ldarg_0);
-            ilGenerator.Emit(OpCodes.Ldarg_1);
-            ilGenerator.Emit(OpCodes.Stfld, fieldBuilder);
-            ilGenerator.Emit(OpCodes.Ret);
-
-            // var method = typeBuilder.DefineMethod(
-            //     "lol",
-            //     MethodAttributes.Public | MethodAttributes.Virtual,
-            //     typeof(string),
-            //     new Type[0]
-            // );
-            // var generator = method.GetILGenerator();
-            // generator.Emit(OpCodes.Ldstr, "Hello");
-            // generator.Emit(OpCodes.Ret);
-
-            var methodBuilders = new Dictionary<string, MethodBuilder>();
-            foreach (var methodInfo in methodInfos)
-            {
-                var methodBuilder = typeBuilder.DefineMethod(
-                    methodInfo.Name,
-                    MethodAttributes.Virtual | methodInfo.Attributes,
-                    methodInfo.ReturnType,
-                    methodInfo.GetParameters().Select(p => p.GetType()).ToArray()
-                );
-                var methodILGen = methodBuilder.GetILGenerator();
-                
-                // methodILGen.Emit(OpCodes.Ldarg_0);
-                // methodILGen.Emit(OpCodes.Ldfld, fieldBuilder);
-                // methodILGen.Emit(OpCodes.Ldarg_1);
-                // methodILGen.Emit(OpCodes.Callvirt, methodBuilder);
-                // methodILGen.Emit(OpCodes.Ret);
-                if (methodInfo.ReturnType == typeof(void))
-                {
-                    if (methodInfo.Name.StartsWith("set"))
-                    {
-                        methodILGen.Emit(OpCodes.Ldarg_0);
-                        methodILGen.Emit(OpCodes.Ldfld, fieldBuilder);
-                        methodILGen.Emit(OpCodes.Ldarg_1);
-                        methodILGen.Emit(OpCodes.Callvirt, methodInfo);
-                        // methodILGen.Emit(OpCodes.Nop);
-                        methodILGen.Emit(OpCodes.Ret);
-                        
-                        methodBuilders.Add(methodInfo.Name, methodBuilder);
-                        // var propertyName = methodInfo.Name.Replace("set_", string.Empty);
-                        // if (propertyBuilders.TryGetValue(propertyName, out var propertyBuilder))
-                        // {
-                        //     propertyBuilder.SetSetMethod(methodBuilder);
-                        // }
-                    }
-                    else
-                    {
-                        methodILGen.Emit(OpCodes.Ldarg_0);
-                        methodILGen.Emit(OpCodes.Ldfld, fieldBuilder);
-                        methodILGen.Emit(OpCodes.Callvirt, methodBuilder);
-                        methodILGen.Emit(OpCodes.Ret);
-                    }
-                }
-                else
-                {
-                    if (methodInfo.Name.StartsWith("get"))
-                    {
-                        methodILGen.Emit(OpCodes.Ldarg_0);
-                        methodILGen.Emit(OpCodes.Ldfld, fieldBuilder);
-                        methodILGen.Emit(OpCodes.Callvirt, methodInfo);
-                        methodILGen.Emit(OpCodes.Ret);
-                        
-                        methodBuilders.Add(methodInfo.Name, methodBuilder);
-                        // var propertyName = methodInfo.Name.Replace("get_", string.Empty);
-                        // if (propertyBuilders.TryGetValue(propertyName, out var propertyBuilder))
-                        // {
-                        //     propertyBuilder.SetGetMethod(methodBuilder);
-                        // }
-                    }
-                    else if (methodInfo.ReturnType.IsValueType || methodInfo.ReturnType.IsEnum)
-                    {
-                        MethodInfo getMethod = typeof(Activator).GetMethod("CreateInstance", new Type[]
-                            { typeof(Type) });
-                        LocalBuilder lb = methodILGen.DeclareLocal(methodInfo.ReturnType);
-                        methodILGen.Emit(OpCodes.Ldtoken, lb.LocalType);
-                        methodILGen.Emit(OpCodes.Call, typeof(Type).GetMethod("GetTypeFromHandle"));
-                        methodILGen.Emit(OpCodes.Callvirt, getMethod);
-                        methodILGen.Emit(OpCodes.Unbox_Any, lb.LocalType);
-                    }
-                    else
-                    {
-                        methodILGen.Emit(OpCodes.Ldarg_0);
-                        methodILGen.Emit(OpCodes.Ldfld, fieldBuilder);
-                        methodILGen.Emit(OpCodes.Callvirt, methodInfo);
-                        // methodILGen.Emit(OpCodes.Ldnull);
-                    }
-                
-                    methodILGen.Emit(OpCodes.Ret);
-                }
-            
-                // typeBuilder.DefineMethodOverride(methodBuilder, methodInfo);
-            }
-            
-            // Properties
-            // var propertyInfos = typeOfT.GetProperties(BindingFlags.Instance | BindingFlags.Public);
-            // foreach (var propertyInfo in propertyInfos)
-            // {
-            //     var propertyBuilder = typeBuilder.DefineProperty(
-            //         propertyInfo.Name,
-            //         PropertyAttributes.None,
-            //         propertyInfo.PropertyType,
-            //         Type.EmptyTypes
-            //     );
-            //     
-            //     if (methodBuilders.TryGetValue($"get_{propertyInfo.Name}", out var getMethod))
-            //     {
-            //         propertyBuilder.SetGetMethod(getMethod);
-            //     }
-            //     
-            //     if (methodBuilders.TryGetValue($"set_{propertyInfo.Name}", out var setMethod))
-            //     {
-            //         propertyBuilder.SetSetMethod(setMethod);
-            //     }
-            // }
-            
-            var constructorInfo = typeof(DebuggerDisplayAttribute).GetConstructors().First();
-            var customAttributeBuilder = new CustomAttributeBuilder(constructorInfo, new object[]{"Not snapshotted"});
-            typeBuilder.SetCustomAttribute(customAttributeBuilder);
-            Type constructedType = typeBuilder.CreateType();
-            var instance = Activator.CreateInstance(constructedType, existing);
-            return (T)instance;
-        }
-    }  
-    
     class Program
     {
         interface IAge
