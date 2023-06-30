@@ -219,6 +219,7 @@ namespace System.Reflection
                     return _ignoresAccessChecksToAttributeConstructor;
                 }
             }
+
             public ProxyBuilder CreateProxy(string name, Type proxyBaseType)
             {
                 var nextId = Interlocked.Increment(ref _typeId);
@@ -238,7 +239,7 @@ namespace System.Reflection
                     new CustomAttributeBuilder(attributeConstructor, new object[] { assemblyName });
                 _ab.SetCustomAttribute(customAttributeBuilder);
             }
-
+            
             // Ensures the type we will reference from the dynamic assembly
             // is visible.  Non-public types need to emit an attribute that
             // allows access from the dynamic assembly.
@@ -284,7 +285,22 @@ namespace System.Reflection
             private readonly TypeBuilder _tb;
             private readonly Type _proxyBaseType;
             private readonly List<FieldBuilder> _fields;
+            private ConstructorInfo _debuggerBrowsableAttributeConstructor;
 
+            internal ConstructorInfo DebuggerBrowsableAttributeConstructor
+            {
+                get
+                {
+                    if (_debuggerBrowsableAttributeConstructor == null)
+                    {
+                        var attributeCtor = typeof(DebuggerBrowsableAttribute).GetConstructor(new []{typeof(DebuggerBrowsableState)});
+                        _debuggerBrowsableAttributeConstructor = attributeCtor;
+                    }
+
+                    return _debuggerBrowsableAttributeConstructor;
+                }
+            }
+            
             internal ProxyBuilder(ProxyAssembly assembly, TypeBuilder tb, Type proxyBaseType)
             {
                 _assembly = assembly;
@@ -292,7 +308,13 @@ namespace System.Reflection
                 _proxyBaseType = proxyBaseType;
 
                 _fields = new List<FieldBuilder>();
-                _fields.Add(tb.DefineField("invoke", typeof(Action<object[]>), FieldAttributes.Private));
+                var invokeFieldBuilder = tb.DefineField("invoke", typeof(Action<object[]>), FieldAttributes.Private);
+                
+                // Mark the field with [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+                var customAttributeBuilder = new CustomAttributeBuilder(DebuggerBrowsableAttributeConstructor, new object[]{DebuggerBrowsableState.Never});
+                invokeFieldBuilder.SetCustomAttribute(customAttributeBuilder);
+                
+                _fields.Add(invokeFieldBuilder);
             }
 
             private void Complete()

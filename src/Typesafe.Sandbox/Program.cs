@@ -18,8 +18,18 @@ namespace Typesafe.Sandbox
 
         public virtual string X() => Text;
     }
-    
-    public class Person
+
+    public interface IPerson
+    {
+        string Name { get; }
+        int Age { get; }
+        string LastName { get; set; }
+        List<Person> Persons { get; set; }
+        ValueType ValueType { get; set; }
+        string ToString();
+    }
+
+    public class Person : IPerson
     {
         public string Name { get; }
         public int Age { get; }
@@ -71,39 +81,39 @@ namespace Typesafe.Sandbox
         Slytherin
     }
 
+    [DebuggerDisplay("Not snapshot")]
+    public class Proxy<T> : DispatchProxy
+    {
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private T _decorated;
+
+        protected override object Invoke(MethodInfo targetMethod, object[] args) =>
+            targetMethod.Invoke(_decorated, args);
+
+        public static T Create(T decorated)
+        {
+            object proxy = Create<T, Proxy<T>>();
+            ((Proxy<T>)proxy).SetParameters(decorated);
+
+            return (T)proxy;
+        }
+
+        private void SetParameters(T decorated)
+        {
+            if (decorated == null) throw new ArgumentNullException(nameof(decorated));
+                
+            _decorated = decorated;
+        }
+    }
+    
     class Program
     {
-        [DebuggerDisplay("Not snapshot")]
-        class Proxy<T> : DispatchProxy
-        {
-            [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-            private T _decorated;
-
-            protected override object Invoke(MethodInfo targetMethod, object[] args) =>
-                targetMethod.Invoke(_decorated, args);
-
-            public static T Create(T decorated)
-            {
-                object proxy = Create<T, Proxy<T>>();
-                ((Proxy<T>)proxy).SetParameters(decorated);
-
-                return (T)proxy;
-            }
-
-            private void SetParameters(T decorated)
-            {
-                if (decorated == null) throw new ArgumentNullException(nameof(decorated));
-                
-                _decorated = decorated;
-            }
-        }
-        
         static void Main(string[] args)
         {
             // Debug wrapper
             {
                 var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
-                var foo = Proxy<Person>.Create(ron);
+                var foo = Proxy<IPerson>.Create(ron);
                 var ron1 = ron.GetSnapshot();
                 Console.WriteLine(ron1);
                 int[] xs = new int[] { 1, 2, 3 };
