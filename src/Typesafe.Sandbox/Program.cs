@@ -73,25 +73,6 @@ namespace Typesafe.Sandbox
 
     class Program
     {
-        interface IAge
-        {
-            int Age { get; set; }
-        }
-
-        interface IName
-        {
-            string Name { get; set; }
-        }
-        interface IP : IAge, IName
-        {
-        }
-        
-        class P : IP
-        {
-            public string Name { get; set; }
-            public int Age { get; set; }
-        }
-
         [DebuggerDisplay("Not snapshot")]
         class Proxy<T> : DispatchProxy
         {
@@ -119,13 +100,10 @@ namespace Typesafe.Sandbox
         
         static void Main(string[] args)
         {
-            var p = new P { Name = "Hello", Age = 1};
-
-            var proxyForP = Proxy<IP>.Create(p);
-
             // Debug wrapper
             {
                 var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
+                var foo = Proxy<Person>.Create(ron);
                 var ron1 = ron.GetSnapshot();
                 Console.WriteLine(ron1);
                 int[] xs = new int[] { 1, 2, 3 };
