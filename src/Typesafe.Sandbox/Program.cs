@@ -3,10 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Typesafe.Merge;
 using Typesafe.Sandbox;
 using Typesafe.With;
 using Typesafe.Snapshots;
+
+[assembly: InternalsVisibleTo("System.Reflection")]
+[assembly: InternalsVisibleTo("System")]
+[assembly: InternalsVisibleTo("System.Reflection.Emit")]
 
 namespace Typesafe.Sandbox
 {
@@ -105,24 +110,61 @@ namespace Typesafe.Sandbox
             _decorated = decorated;
         }
     }
+
+    public interface IHasName
+    {
+        string Name { get; set; }
+
+        void SetName(string name);
+
+        string GetName();
+    }
+
+    public class HasName : IHasName
+    {
+        public string Name { get; set; }
+        
+        public void SetName(string name)
+        {
+            Name = name;
+        }
+
+        public string GetName()
+        {
+            return Name;
+        }
+    }
+
+    public class Root
+    {
+        public IHasName HasName { get; set; }
+    }
     
     class Program
     {
         static void Main(string[] args)
         {
-            // Debug wrapper
+            // Dispatch proxy
             {
-                var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
-                var foo = Proxy<IPerson>.Create(ron);
-                var ron1 = ron.GetSnapshot();
-                Console.WriteLine(ron1);
-                int[] xs = new int[] { 1, 2, 3 };
-                var ys = xs.GetSnapshot();
-                Console.WriteLine(ys);
-                // var uri = new Uri("https://google.dk");
-                // var snapshot = uri.GetSnapshot();
-                // Console.WriteLine(snapshot);
+                var root = new Root { HasName = new HasName { Name = "Name" } };
+                var proxiedHasName = Proxy<IHasName>.Create(root.HasName);
+                root.HasName = proxiedHasName;
+                Console.WriteLine("Complete");
             }
+            
+            // // Debug wrapper
+            // {
+            //     var ron = new Person("Ron", 3){LastName = "Weasley",ValueType = new ValueType{Age = 3}};
+            //     var foo = Proxy<IPerson>.Create(ron);
+            //     var ron1 = ron.GetSnapshot();
+            //     Console.WriteLine(ron1);
+            //     int[] xs = new int[] { 1, 2, 3 };
+            //     var ys = xs.GetSnapshot();
+            //     Console.WriteLine(ys);
+            //     // var uri = new Uri("https://google.dk");
+            //     // var snapshot = uri.GetSnapshot();
+            //     // Console.WriteLine(snapshot);
+            // }
             // {
             //     var builder = new SnapshotGeneratorProviderBuilder();
             //     var snapshotGeneratorProvider = builder.RegisterProvider<int, IntSnapshotGenerator>(new IntSnapshotGenerator()).Build();
