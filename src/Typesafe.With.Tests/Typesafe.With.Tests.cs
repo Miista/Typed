@@ -5,12 +5,46 @@ using System.Linq;
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+// ReSharper disable UnusedParameter.Local
+// ReSharper disable UnassignedGetOnlyAutoProperty
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedAutoPropertyAccessor.Local
 
 // ReSharper disable once CheckNamespace
 namespace Typesafe.With.Tests
 {
     public class Tests
     {
+        public class Errors
+        {
+            internal class TypeWithConstructorTakingNonPropertyParameter
+            {
+                public string SettableProperty { get; set; }
+
+                public TypeWithConstructorTakingNonPropertyParameter(string settableProperty, string randomNonInstanceValue)
+                {
+                    SettableProperty = settableProperty;
+                }
+            }
+
+            [Theory, AutoData]
+            internal void Throws_exception_if_constructor_has_parameter_for_which_there_is_no_property(TypeWithConstructorTakingNonPropertyParameter instance)
+            {
+                // Arrange + Act
+                Action act = () => instance.With(_ => _.SettableProperty, "Hey");
+
+                // Assert
+                act.Should()
+                        .Throw<Exception>()
+                        .WithMessage("*randomNonInstanceValue*", because: "the exception message should contain the constructor parameter")
+                        .WithMessage($"*{nameof(TypeWithConstructorTakingNonPropertyParameter)}*", because: "the exception message should contain the type name")
+                    ;
+            }
+        }
+        
         public class Expressions
         {
             internal class TypeWithNestedProperty
@@ -422,7 +456,10 @@ namespace Typesafe.With.Tests
                 // Assert
                 act.Should()
                     .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
-                    .WithMessage("Property '*' cannot be set via constructor or property setter.");
+                    .WithMessage("*Property '*' cannot be set via constructor or property setter*")
+                    .WithMessage($"*{nameof(TypeWithoutMatchingConstructorArgument)}*", because: "the exception message should include the type name")
+                    .WithMessage($"*{nameof(TypeWithoutMatchingConstructorArgument.FullName)}*", because: "the exception message should include the property name")
+                ;
             }
             
             internal class TypeWithPrivateConstructor
