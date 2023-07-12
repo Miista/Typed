@@ -63,7 +63,9 @@ namespace Typesafe.With
             if (hasPropertySetter) return;
 
             // If we cannot do either, then there is no point in continuing.
-            throw new InvalidOperationException($"Property '{propertyName.ToPropertyCase()}' cannot be set via constructor or property setter.");
+            throw new InvalidOperationException(
+                $"Error calling {nameof(With)} on type {typeof(T)}: Property '{propertyName.ToPropertyCase()}' cannot be set via constructor or property setter. You can fix this by making the property settable or adding it as a constructor parameter."
+            );
         }
 
         private static bool HasPropertySetter<T>(string propertyName)

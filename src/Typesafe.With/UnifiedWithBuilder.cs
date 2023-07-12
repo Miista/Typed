@@ -30,7 +30,7 @@ namespace Typesafe.With
 
             if (remainingPropertiesAfterPropSet.Count != 0)
             {
-                throw new InvalidOperationException("There are still properties to set but no way to set them.");
+                throw new InvalidOperationException($"Error creating instance of type '{typeof(T)}': There are still properties to set but no way to set them.");
             }
             
             // 3. Copy remaining properties
@@ -83,7 +83,9 @@ namespace Typesafe.With
                 // Can we find a matching constructor parameter if we lowercase both parameter and property name?
                 var existingPropertyKey =
                     existingProperties.Keys.FirstOrDefault(key => string.Equals(key, parameterInfo.Name, StringComparison.InvariantCultureIgnoreCase))
-                    ?? throw new InvalidOperationException($"Cannot find property for constructor parameter '{parameterInfo.Name}'.");
+                    ?? throw new InvalidOperationException(
+                        $"Error creating instance of type '{typeof(TInstance)}': Cannot find property for constructor parameter '{parameterInfo.Name}'. This is usually a sign that the constructor contains logic."
+                    );
 
                 var existingPropertyByLowercaseMatch = existingProperties[existingPropertyKey];
                 
@@ -113,12 +115,12 @@ namespace Typesafe.With
             {
                 if (!existingProperties.TryGetValue(property.Key, out var existingProperty))
                 {
-                    throw new InvalidOperationException($"Cannot find property with name '{property.Key}'.");
+                    throw new InvalidOperationException($"Error enriching instance of type '{typeof(TInstance)}': Cannot find property with name '{property.Key}'.");
                 }
 
                 if (!existingProperty.CanWrite)
                 {
-                    throw new InvalidOperationException($"Property '{property.Key}' cannot be written to.");
+                    throw new InvalidOperationException($"Error enriching instance of type '{typeof(TInstance)}': Property '{property.Key}' cannot be written to. You can fix this by making the property settable.");
                 }
 
                 var value = property.Value is DependentValue dependentValue
