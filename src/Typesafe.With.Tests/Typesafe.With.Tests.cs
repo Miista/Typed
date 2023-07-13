@@ -7,14 +7,108 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
+// ReSharper disable AutoPropertyCanBeMadeGetOnly.Global
+// ReSharper disable UnusedParameter.Local
+// ReSharper disable UnassignedGetOnlyAutoProperty
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedAutoPropertyAccessor.Local
 
 namespace Typesafe.With.Tests
 {
     public class Tests
     {
+        public class Errors
+        {
+            internal class TypeWithConstructorTakingNonPropertyParameter
+            {
+                public string SettableProperty { get; set; }
+
+                public TypeWithConstructorTakingNonPropertyParameter(string settableProperty, string randomNonInstanceValue)
+                {
+                    SettableProperty = settableProperty;
+                }
+            }
+
+            [Theory, AutoData]
+            internal void Throws_exception_if_constructor_has_parameter_for_which_there_is_no_property(TypeWithConstructorTakingNonPropertyParameter instance)
+            {
+                // Arrange + Act
+                Action act = () => instance.With(_ => _.SettableProperty, "Hey");
+
+                // Assert
+                act.Should()
+                        .Throw<Exception>()
+                        .WithMessage("*randomNonInstanceValue*", because: "the exception message should contain the constructor parameter")
+                        .WithMessage($"*{nameof(TypeWithConstructorTakingNonPropertyParameter)}*", because: "the exception message should contain the type name")
+                    ;
+            }
+        }
+        
+        public class Expressions
+        {
+            internal class TypeWithNestedProperty
+            {
+                internal class NestedType
+                {
+                    public string Text { get; set; }
+                }
+
+                public NestedType Nested { get; set; }
+            }
+            
+            [Theory, AutoData]
+            internal void Does_not_support_expression_representing_a_nested_property(TypeWithNestedProperty instance, string newValue)
+            {
+                // Act
+                Action act = () => instance.With(_ => _.Nested.Text, newValue);
+
+                // Assert
+                act.Should().Throw<Exception>(because: "the expression represents a nested property");
+            }
+            
+            internal class TypeWithPrivateConstructor
+            {
+                public string Text { get; }
+
+                private TypeWithPrivateConstructor(string text)
+                {
+                    Text = text;
+                }
+
+                public static TypeWithPrivateConstructor Create(string text) => new TypeWithPrivateConstructor(text);
+            }
+            
+            internal class TypeTakingTypeWithPrivateConstructor
+            {
+                public TypeWithPrivateConstructor OtherType { get; }
+
+                public TypeTakingTypeWithPrivateConstructor(TypeWithPrivateConstructor otherType)
+                {
+                    OtherType = otherType;
+                }
+            }
+            
+            [Theory, AutoData]
+            public void With_fails_if_type_in_hierarchy_does_not_have_a_public_constructor(string originalText, string newText)
+            {
+                // Arrange
+                var otherType = TypeWithPrivateConstructor.Create(originalText);
+                var instance = new TypeTakingTypeWithPrivateConstructor(otherType);
+
+                // Act
+                Action act = () => instance.With(_ => _.OtherType.Text, newText);
+
+                // Assert
+                act.Should().Throw<Exception>(because: "the type does not have a public constructor");
+            }
+        }
+        
         public class Inheritance
         {
             internal class BaseClassWithSetter
@@ -348,6 +442,74 @@ namespace Typesafe.With.Tests
 
         public class Validation
         {
+            internal class TypeWithoutMatchingConstructorArgument
+            {
+                public string FullName { get; }
+
+                public TypeWithoutMatchingConstructorArgument(string name)
+                {
+                    FullName = name;
+                }
+            }
+        
+            [Theory, AutoData]
+            internal void With_fails_if_property_has_no_matching_constructor_argument(TypeWithoutMatchingConstructorArgument source, string newValue)
+            {
+                // Act
+                Action act = () => source.With(_ => _.FullName, newValue);
+
+                // Assert
+                act.Should()
+                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
+                    .WithMessage("*Property '*' cannot be set via constructor or property setter*")
+                    .WithMessage($"*{nameof(TypeWithoutMatchingConstructorArgument)}*", because: "the exception message should include the type name")
+                    .WithMessage($"*{nameof(TypeWithoutMatchingConstructorArgument.FullName)}*", because: "the exception message should include the property name")
+                ;
+            }
+            
+            internal class TypeWithPrivateConstructor
+            {
+                public string Text { get; }
+
+                private TypeWithPrivateConstructor(string text)
+                {
+                    Text = text;
+                }
+
+                public static TypeWithPrivateConstructor Create(string text) => new TypeWithPrivateConstructor(text);
+            }
+
+            [Theory, AutoData]
+            public void Cannot_handle_type_with_private_constructor(string originalText, string newText)
+            {
+                // Arrange
+                var instance = TypeWithPrivateConstructor.Create(originalText);
+
+                // Act
+                Action act = () => instance.With(_ => _.Text, newText);
+
+                // Assert
+                act.Should().Throw<Exception>(because: "the type does not have a public constructor");
+            }
+            
+            internal class TypeWithoutWritableProperty
+            {
+                public string Text { get; }
+            }
+            
+            [Theory, AutoData]
+            internal void With_fails_if_property_is_not_writable(TypeWithoutWritableProperty source, string newValue)
+            {
+                // Act
+                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
+                
+                // Assert
+                act.Should()
+                    .Throw<InvalidOperationException>(
+                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
+                    .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
+            }
+            
             internal class TypeWithConstructor_PublicGetter_NoSetter
             {
                 public int Property { get; }
@@ -476,46 +638,23 @@ namespace Typesafe.With.Tests
 
         public class General
         {
-            internal class TypeWithoutWritableProperty
+            internal class TypeCreatesNewInstance
             {
-                public string Text { get; }
+                public string Id { get; }
+
+                public TypeCreatesNewInstance(string id) => Id = id;
             }
             
             [Theory, AutoData]
-            internal void With_fails_if_property_is_not_writable(TypeWithoutWritableProperty source, string newValue)
+            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
             {
                 // Act
-                Func<TypeWithoutWritableProperty> act = () => source.With(s => s.Text, newValue);
-                
-                // Assert
-                act.Should()
-                    .Throw<InvalidOperationException>(
-                        because: $"the property '{nameof(TypeWithoutWritableProperty.Text)}' is not writable")
-                    .And.Message.Should().Contain(nameof(TypeWithoutWritableProperty.Text));
-            }
-
-            internal class TypeWithoutMatchingConstructorArgument
-            {
-                public string FullName { get; }
-
-                public TypeWithoutMatchingConstructorArgument(string name)
-                {
-                    FullName = name;
-                }
-            }
-        
-            [Theory, AutoData]
-            internal void With_fails_if_property_has_no_matching_constructor_argument(TypeWithoutMatchingConstructorArgument source, string newValue)
-            {
-                // Act
-                Action act = () => source.With(_ => _.FullName, newValue);
+                var result = source.With(s => s.Id, newValue);
 
                 // Assert
-                act.Should()
-                    .Throw<Exception>(because: $"there is no matching constructor parameter for property '{nameof(TypeWithoutMatchingConstructorArgument.FullName)}'")
-                    .WithMessage("Property '*' cannot be set via constructor or property setter.");
+                result.GetHashCode().Should().NotBe(source.GetHashCode());
             }
-
+            
             private class Container<T>
             {
                 public T Value { get; set; }
@@ -797,22 +936,153 @@ namespace Typesafe.With.Tests
                 // Assert
                 result.SSN.Should().Be(newValue, because: "the property is set via constructor");
             }
+        }
 
-            internal class TypeCreatesNewInstance
+        public class DependentValues
+        {
+            private class TypeWithConstructor
             {
-                public string Id { get; }
+                public string Name { get; }
 
-                public TypeCreatesNewInstance(string id) => Id = id;
+                public TypeWithConstructor(string name)
+                {
+                    Name = name;
+                }
+            }
+
+            [Theory, AutoData]
+            public void Can_resolve_dependent_value_for_constructor(string originalName)
+            {
+                // Arrange
+                var newLength = originalName.Length - 10;
+                var expectedName = originalName.Substring(newLength);
+                
+                var sut = new TypeWithConstructor(originalName);
+
+                // Act
+                var result = sut.With(c => c.Name, name => name.Substring(newLength));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(expectedName, because: "the name has been 'substringed'");
+            }
+            
+            private class TypeWithProperty
+            {
+                public string Name { get; set; }
             }
             
             [Theory, AutoData]
-            internal void Calling_With_creates_a_new_instance(TypeCreatesNewInstance source, string newValue)
+            public void Can_resolve_dependent_value_for_property(string originalName)
             {
+                // Arrange
+                var newLength = originalName.Length - 10;
+                var expectedName = originalName.Substring(newLength);
+
+                var sut = new TypeWithProperty { Name = originalName };
+
                 // Act
-                var result = source.With(s => s.Id, newValue);
+                var result = sut.With(c => c.Name, name => name.Substring(newLength));
 
                 // Assert
-                result.GetHashCode().Should().NotBe(source.GetHashCode());
+                result.Should().NotBeNull();
+                result.Name.Should().Be(expectedName, because: "the name has been 'substringed'");
+            }
+
+            private class TypeWithConstructorAndProperty
+            {
+                public string Name { get; set; }
+                public int Age { get; }
+
+                public TypeWithConstructorAndProperty(int age)
+                {
+                    Age = age;
+                }
+            }
+            
+            [Theory, AutoData]
+            public void Can_resolve_dependent_value_for_constructor_and_property(string originalName, int originalAge)
+            {
+                // Arrange
+                var newLength = originalName.Length - 10;
+                var expectedName = originalName.Substring(newLength);
+                var expectedAge = originalAge + 1;
+
+                var sut = new TypeWithConstructorAndProperty(originalAge) { Name = originalName };
+
+                // Act
+                var result = sut
+                    .With(c => c.Name, name => name.Substring(newLength))
+                    .With(c => c.Age, age => age + 1);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(expectedName, because: "the name has been 'substringed'");
+                result.Age.Should().Be(expectedAge, because: "the age has been incremented by one");
+            }
+
+            private class TypeWithManyProperties
+            {
+                public string Name { get; set; }
+                public int Age { get; set; }
+                public double Wage { get; set; }
+            }
+            
+            [Theory, AutoData]
+            public void Does_not_change_other_properties(string name, int age, double wage)
+            {
+                // Arrange
+                var sut = new TypeWithManyProperties { Name = name, Age = age, Wage = wage };
+
+                // Act
+                var result = sut.With(c => c.Age, currentAge => currentAge + 1);
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Should().BeEquivalentTo(sut, options => options.Excluding(info => info.Age), because: "other properties are not changed");
+                result.Age.Should().Be(age + 1, because: "the value has been incremented by one");
+            }
+
+            [Theory, AutoData]
+            public void Supplies_value_from_new_instance_when_chaining(string originalName, string newName)
+            {
+                // Arrange
+                var expectedName = new string(newName.Substring(0, 10).Reverse().ToArray());
+                var sut = new TypeWithConstructor(originalName);
+
+                // Act
+                var result = sut
+                    .With(c => c.Name, newName)
+                    .With(c => c.Name, name => name.Substring(0, 10))
+                    .With(c => c.Name, name => new string(name.Reverse().ToArray()));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Name.Should().Be(expectedName);
+            }
+
+            private class TypeWithEnumerableProperty
+            {
+                public IEnumerable<string> Names { get; }
+
+                public TypeWithEnumerableProperty(IEnumerable<string> names)
+                {
+                    Names = names;
+                }
+            }
+
+            [Theory, AutoData]
+            public void Can_handle_lists(string item1, string item2)
+            {
+                // Arrange
+                var sut = new TypeWithEnumerableProperty(new List<string>{item1});
+
+                // Act
+                var result = sut.With(c => c.Names, names => names.Concat(new[] { item2 }));
+
+                // Assert
+                result.Should().NotBeNull();
+                result.Names.Should().HaveCount(2, because: "there are 2 elements in the list");
             }
         }
     }

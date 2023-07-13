@@ -8,7 +8,55 @@ namespace Typesafe.With
 {
     public static class ObjectExtensions
     {
-        public static T With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, TProperty propertyValue)
+        /// <summary>
+        /// Sets the value of the property select
+        /// </summary>
+        /// <param name="instance">The instance whose property to update.</param>
+        /// <param name="propertyPicker">An expression representing the property to update.</param>
+        /// <param name="propertyValueFactory">A function taking in the current value and returning the new value.</param>
+        /// <typeparam name="T">The type of the instance.</typeparam>
+        /// <typeparam name="TProperty">The type of the property.</typeparam>
+        /// <returns>A new instance of <typeparamref name="T"/>.</returns>
+        /// <exception cref="ArgumentNullException">If either parameter is null.</exception>
+        public static T With<T, TProperty>(
+            this T instance,
+            Expression<Func<T, TProperty>> propertyPicker,
+            Expression<Func<TProperty, TProperty>> propertyValueFactory
+        )
+        {
+            if (instance == null) throw new ArgumentNullException(nameof(instance));
+            if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
+            if (propertyValueFactory == null) throw new ArgumentNullException(nameof(propertyValueFactory));
+
+            var propertyName = propertyPicker.GetPropertyName();
+            var properties = new Dictionary<string, object>
+            {
+                {propertyName, new DependentValue(propertyValueFactory, instance)}
+            };
+
+            Validate<T>(propertyName);
+            
+            var constructor = TypeUtils.GetSuitableConstructor<T>();
+            var builder = new UnifiedWithBuilder<T>(constructor);
+            
+            return builder.Construct(instance, properties);
+        }
+
+        /// <summary>
+        /// Sets the value of the property selected by <paramref name="propertyPicker"/> to <paramref name="propertyValue"/>.
+        /// </summary>
+        /// <param name="instance">The instance whose property to update.</param>
+        /// <param name="propertyPicker">An expression representing the property to update.</param>
+        /// <param name="propertyValue">The value to set the property to.</param>
+        /// <typeparam name="T">The type of the instance.</typeparam>
+        /// <typeparam name="TProperty">The type of the property.</typeparam>
+        /// <returns>A new instance of <typeparamref name="T"/>.</returns>
+        /// <exception cref="ArgumentNullException">If either <paramref name="instance"/> or <paramref name="propertyPicker"/> are null.</exception>
+        public static T With<T, TProperty>(
+            this T instance,
+            Expression<Func<T, TProperty>> propertyPicker,
+            TProperty propertyValue
+        )
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
@@ -40,7 +88,9 @@ namespace Typesafe.With
             if (hasPropertySetter) return;
 
             // If we cannot do either, then there is no point in continuing.
-            throw new InvalidOperationException($"Property '{propertyName.ToPropertyCase()}' cannot be set via constructor or property setter.");
+            throw new InvalidOperationException(
+                $"Error calling {nameof(With)} on type {typeof(T)}: Property '{propertyName.ToPropertyCase()}' cannot be set via constructor or property setter. You can fix this by making the property settable or adding it as a constructor parameter."
+            );
         }
 
         private static bool HasPropertySetter<T>(string propertyName)

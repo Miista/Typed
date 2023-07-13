@@ -18,6 +18,8 @@ namespace Typesafe.Kernel
             {
                 case UnaryExpression u when u.Operand is MemberExpression um:
                     return (um.Member as PropertyInfo)?.Name.ToParameterCase();
+                case MemberExpression m when m.Expression.NodeType == ExpressionType.MemberAccess:
+                    throw new InvalidOperationException($"Expression '{expression}' represents a nested property");
                 case MemberExpression m:
                     return (m.Member as PropertyInfo)?.Name.ToParameterCase();
                 default:

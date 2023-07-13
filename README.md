@@ -82,6 +82,25 @@ Console.WriteLine(malfoy.Name); // Prints "Malfoy"
 Console.WriteLine(malfoy.House); // Prints "Slytherin"
 ```
 
+### Update a property depending on its current state
+```csharp
+public enum House { Gryffindor, Slytherin }
+
+public class Person
+{
+    public string Name { get; }
+    public House House { get; }
+    
+    public Person(string name, House house) => (Name, House) = (name, house);
+}
+
+var harry = new Person("Harry Potter", House.Gryffindor);
+var malfoy = harry
+	.With(p => p.House, house => house == House.Slytherin ? House.Gryffindor : house);
+
+Console.WriteLine(malfoy.House); // Prints "Gryffindor"
+```
+
 ### Sequencing
 If you need to update many objects at the same time, you can create a sequence of mutations to be applied.
 
@@ -132,12 +151,12 @@ Console.WriteLine(hermione.Name); // Prints "Hermione Granger"
 ## How it works
 The resulting type `T` is constructed via the following steps:
 
-1. Find appropriate^+^ constructor _C_ for type `T`
-2. Resolve arguments _A~C~_
-2. Invoke _C_, exchanging the argument to be swapped
-2. Call property setters, exchanging the argument to be swapped
+1. Find appropriate<sup>+</sup> constructor _C_ for type `T`
+2. Resolve the set of arguments _A<sub>C</sub>_ for constructor _C_
+2. Invoke _C_, exchanging the arguments _A<sub>C</sub>_ to be swapped
+2. Call property setters, exchanging the arguments _A<sub>C</sub>_ to be swapped
 
-^+^ The constructor taking the most arguments. If there is no constructor, the default constructor is called.
+<sup>+</sup> The constructor taking the most arguments. If there is no constructor, the default constructor is called.
 
 In step 2, if the constructor _C_ takes the argument to be swapped, the 
 
