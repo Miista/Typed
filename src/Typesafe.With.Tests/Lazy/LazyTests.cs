@@ -2,6 +2,7 @@
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable UnassignedGetOnlyAutoProperty
 // ReSharper disable InconsistentNaming
+// ReSharper disable UnusedVariable
 // ReSharper disable CheckNamespace
 
 using System;
@@ -31,7 +32,7 @@ namespace Typesafe.With.Lazy.Tests
 
         // Assert
         sequence.Should().NotBeNull();
-        sequence.Should().NotBeAssignableTo<TypeWithProperties>();
+        sequence.Should().NotBeAssignableTo<TypeWithProperties>(because: "the sequence has not been evaluated");
       }
 
       [Theory, AutoData]
@@ -56,7 +57,7 @@ namespace Typesafe.With.Lazy.Tests
         // Assert
         result.Should().NotBeNull();
         result.String.Should().Be(newValue);
-        result.Should().BeAssignableTo<TypeWithProperties>();
+        result.Should().BeAssignableTo<TypeWithProperties>(because: "the lazy sequence has been evaluated");
       }
 
       [Theory, AutoData]
@@ -70,17 +71,14 @@ namespace Typesafe.With.Lazy.Tests
         // Assert
         result.Should().NotBeNull();
         result.String.Should().Be(newValue);
-        result.Should().BeAssignableTo<TypeWithProperties>();
+        result.Should().BeAssignableTo<TypeWithProperties>(because: "the lazy sequence has been evaluated via implicit casting");
       }
       
       [Theory, AutoData]
-      internal void Supports_taking_a_value_factory(TypeWithProperties instance, string newValue, int newInt)
+      internal void Supports_taking_a_value_factory(TypeWithProperties instance, string newValue)
       {
         // Act
-        TypeWithProperties result = instance
-          .With(i => i.String, newValue)
-          .With(i => i.String, () => newValue)
-          .With(i => i.Int, () => newInt);
+        TypeWithProperties result = instance.With(i => i.String, () => newValue);
 
         // Assert
         result.Should().NotBeNull();
@@ -88,30 +86,26 @@ namespace Typesafe.With.Lazy.Tests
       }
       
       [Theory, AutoData]
-      internal void Does_not_evaluate_lazy_sequence_until_instructed_to(TypeWithProperties instance, string newValue)
-      {
+      internal void Does_not_evaluate_lazy_sequence_until_instructed_to(TypeWithProperties instance)
+            {
         // Arrange
-        var sequence = instance
-          .With(i => i.String, newValue)
-          .With(i => i.String, () => throw new Exception());
+        var sequence = instance.With(i => i.String, () => throw new Exception());
         
         // Act
         Action act = () => { TypeWithProperties result = sequence; };
 
         // Assert
-        act.Should().Throw<Exception>();
+        act.Should().Throw<Exception>(because: "the sequence has been evaluated and the propertyValueFactory throws an exception");
       }
       
       [Theory, AutoData]
-      internal void Does_not_evaluate_lazy_sequence(TypeWithProperties instance, string newValue)
-      {
+      internal void Does_not_evaluate_lazy_sequence(TypeWithProperties instance)
+            {
         // Act
-        Action act = () => { instance
-          .With(i => i.String, newValue)
-          .With(i => i.String, () => throw new Exception()); };
+        Action act = () => instance.With(i => i.String, () => throw new Exception());
 
         // Assert
-        act.Should().NotThrow<Exception>();
+        act.Should().NotThrow<Exception>(because: "the sequence has not been evaluated");
       }
 
       internal class TypeWithFuncs
@@ -132,7 +126,7 @@ namespace Typesafe.With.Lazy.Tests
         Action act = () => { TypeWithFuncs result = sequence; };
 
         // Assert
-        act.Should().NotThrow<Exception>();
+        act.Should().NotThrow<Exception>(because: "the sequence has not been evaluated");
       }
       
       [Theory, AutoData]
@@ -161,9 +155,8 @@ namespace Typesafe.With.Lazy.Tests
         Action act = () => { TypeWithProperties result = sequence; };
 
         // Assert
-        act.Should().NotThrow<Exception>();
+        act.Should().NotThrow<Exception>(because: "the sequence has not been evaluated");
       }
-
     }
   }
 }

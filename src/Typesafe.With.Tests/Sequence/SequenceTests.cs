@@ -30,7 +30,7 @@ namespace Typesafe.With.Sequence.Tests
     
         // Assert
         sequence.Should().NotBeNull();
-        sequence.Should().NotBeAssignableTo<TypeWithProperties>();
+        sequence.Should().NotBeAssignableTo<TypeWithProperties>(because: "the sequence has not been applied");
       }
       
       [Theory, AutoData]
@@ -42,7 +42,7 @@ namespace Typesafe.With.Sequence.Tests
     
         // Assert
         result.Should().NotBeNull();
-        result.String.Should().Be(newValue);
+        result.String.Should().Be(newValue, because: "the sequence has been applied to the instance");
       }
       
       [Theory, AutoData]
@@ -70,7 +70,7 @@ namespace Typesafe.With.Sequence.Tests
 
         // Assert
         sequence.Should().NotBeNull();
-        sequence.Should().NotBeAssignableTo<TypeWithProperties>();
+        sequence.Should().NotBeAssignableTo<TypeWithProperties>(because: "the sequence has not been applied");
       }
     }
   }
