@@ -8,6 +8,16 @@ namespace Typesafe.With
 {
     public static class ObjectExtensions
     {
+        /// <summary>
+        /// Sets the value of the property select
+        /// </summary>
+        /// <param name="instance">The instance whose property to update.</param>
+        /// <param name="propertyPicker">An expression representing the property to update.</param>
+        /// <param name="propertyValueFactory">A function taking in the current value and returning the new value.</param>
+        /// <typeparam name="T">The type of the instance.</typeparam>
+        /// <typeparam name="TProperty">The type of the property.</typeparam>
+        /// <returns>A new instance of <typeparamref name="T"/>.</returns>
+        /// <exception cref="ArgumentNullException">If either parameter is null.</exception>
         public static T With<T, TProperty>(
             this T instance,
             Expression<Func<T, TProperty>> propertyPicker,
@@ -16,6 +26,7 @@ namespace Typesafe.With
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
+            if (propertyValueFactory == null) throw new ArgumentNullException(nameof(propertyValueFactory));
 
             var propertyName = propertyPicker.GetPropertyName();
             var properties = new Dictionary<string, object>
