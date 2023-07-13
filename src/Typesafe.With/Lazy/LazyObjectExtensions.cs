@@ -7,7 +7,21 @@ namespace Typesafe.With.Lazy
 {
     public static class LazyObjectExtensions
     {
-        public static LazyInstancedWithSequence<T> With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, TProperty propertyValue) where T : class
+        /// <summary>
+        /// Starts a lazily evaluated sequence of with'ers.
+        /// </summary>
+        /// <param name="instance">The instance whose property to update.</param>
+        /// <param name="propertyPicker">An expression representing the property to update.</param>
+        /// <param name="propertyValue">The value to set the property to.</param>
+        /// <typeparam name="T">The type of the instance.</typeparam>
+        /// <typeparam name="TProperty">The type of the property.</typeparam>
+        /// <returns>A lazy sequence which will update the value of the property when applied.</returns>
+        /// <exception cref="ArgumentNullException">If either <paramref name="instance"/> or <paramref name="propertyPicker"/> are null.</exception>
+        public static LazyInstancedWithSequence<T> With<T, TProperty>(
+            this T instance,
+            Expression<Func<T, TProperty>> propertyPicker,
+            TProperty propertyValue)
+            where T : class
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
@@ -17,11 +31,26 @@ namespace Typesafe.With.Lazy
 
             return new LazyInstancedWithSequence<T>(instance).With(propertyPicker, propertyValue);
         }
-        
-        public static LazyInstancedWithSequence<T> With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, Func<TProperty> propertyValueFactory) where T : class
+
+        /// <summary>
+        /// Starts a lazily evaluated sequence of with'ers.
+        /// </summary>
+        /// <param name="instance">The instance whose property to update.</param>
+        /// <param name="propertyPicker">An expression representing the property to update.</param>
+        /// <param name="propertyValueFactory">A function taking in the current value and returning the new value.</param>
+        /// <typeparam name="T">The type of the instance.</typeparam>
+        /// <typeparam name="TProperty">The type of the property.</typeparam>
+        /// <returns>A lazy sequence which will update the value of the property when applied.</returns>
+        /// <exception cref="ArgumentNullException">If either parameter is null.</exception>
+        public static LazyInstancedWithSequence<T> With<T, TProperty>(
+            this T instance,
+            Expression<Func<T, TProperty>> propertyPicker,
+            Func<TProperty> propertyValueFactory)
+            where T : class
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
+            if (propertyValueFactory == null) throw new ArgumentNullException(nameof(propertyValueFactory));
 
             var propertyName = propertyPicker.GetPropertyName();
             Validate<T>(propertyName);
