@@ -30,8 +30,22 @@ namespace Typesafe.With
             
             return builder.Construct(instance, properties);
         }
-        
-        public static T With<T, TProperty>(this T instance, Expression<Func<T, TProperty>> propertyPicker, TProperty propertyValue)
+
+        /// <summary>
+        /// Sets the value of the property selected by <paramref name="propertyPicker"/> to <paramref name="propertyValue"/>.
+        /// </summary>
+        /// <param name="instance">The instance whose property to update.</param>
+        /// <param name="propertyPicker">An expression representing the property to update.</param>
+        /// <param name="propertyValue">The value to set the property to.</param>
+        /// <typeparam name="T">The type of the instance.</typeparam>
+        /// <typeparam name="TProperty">The type of the property.</typeparam>
+        /// <returns>A new instance of <typeparamref name="T"/>.</returns>
+        /// <exception cref="ArgumentNullException">If either <paramref name="instance"/> or <paramref name="propertyPicker"/> are null.</exception>
+        public static T With<T, TProperty>(
+            this T instance,
+            Expression<Func<T, TProperty>> propertyPicker,
+            TProperty propertyValue
+        )
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
