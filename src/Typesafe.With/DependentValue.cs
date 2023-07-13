@@ -6,20 +6,21 @@ namespace Typesafe.With
 {
     internal readonly struct DependentValue
     {
-        private readonly LambdaExpression _expression;
+        private readonly Delegate _expression;
+        private readonly object _instance;
         
-        public DependentValue(LambdaExpression function)
+        public DependentValue(LambdaExpression function, object instance)
         {
-            _expression = function ?? throw new ArgumentNullException(nameof(function));
+            _expression = function?.Compile() ?? throw new ArgumentNullException(nameof(function));
+            _instance = instance ?? throw new ArgumentNullException(nameof(instance));
         }
 
-        public object Resolve(PropertyInfo existingProperty, object instance)
+        public object Resolve(PropertyInfo existingProperty)
         {
             if (existingProperty == null) throw new ArgumentNullException(nameof(existingProperty));
-            if (instance == null) throw new ArgumentNullException(nameof(instance));
-            
-            var compiledExpression = _expression.Compile();
-            var existingValue = existingProperty.GetValue(instance);
+
+            var compiledExpression = _expression;
+            var existingValue = existingProperty.GetValue(_instance);
                 
             return compiledExpression.DynamicInvoke(existingValue);
         }
