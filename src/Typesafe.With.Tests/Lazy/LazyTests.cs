@@ -47,6 +47,17 @@ namespace Typesafe.With.Lazy.Tests
         sequence.Should().NotBeNull();
         sequence.Should().NotBeAssignableTo<TypeWithProperties>();
       }
+      
+      [Theory, AutoData]
+      internal void Calling_with_on_a_sequence_returns_a_new_instance_of_the_sequence(TypeWithProperties instance, string newValue)
+      {
+        // Act
+        var sequence = instance.With(i => i.String, newValue);
+        var newSequence = sequence.With(i => i.String, newValue);
+
+        // Assert
+        sequence.Should().NotBeSameAs(newSequence, because: "calling With on a lazily sequence should create a new instance of the sequence");
+      }
 
       [Theory, AutoData]
       internal void Can_evaluate_sequence(TypeWithProperties instance, string newValue)

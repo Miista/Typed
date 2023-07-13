@@ -9,12 +9,18 @@ namespace Typesafe.With.Lazy
 {
   public class LazyInstancedWithSequence<T> where T : class
   {
-    private readonly Dictionary<string, object> _properties = new Dictionary<string, object>();
+    private readonly Dictionary<string, object> _properties;
     private readonly T _instance;
-    
+
     public LazyInstancedWithSequence(T instance)
+      : this(instance, new Dictionary<string, object>())
+    {
+    }
+
+    private LazyInstancedWithSequence(T instance, Dictionary<string, object> properties)
     {
       _instance = instance ?? throw new ArgumentNullException(nameof(instance));
+      _properties = properties ?? throw new ArgumentNullException(nameof(properties));
     }
 
     public LazyInstancedWithSequence<T> With<TProperty>(Expression<Func<T, TProperty>> propertyPicker, TProperty propertyValue)
@@ -22,9 +28,10 @@ namespace Typesafe.With.Lazy
       if (propertyPicker == null) throw new ArgumentNullException(nameof(propertyPicker));
       
       var propertyName = propertyPicker.GetPropertyName();
-      AddOrUpdate(propertyName, propertyValue);
-
-      return this;
+      
+      var dictionary = new Dictionary<string, object>(_properties).AddOrUpdate(propertyName, propertyValue);
+      
+      return new LazyInstancedWithSequence<T>(_instance, dictionary);
     }
     
     public LazyInstancedWithSequence<T> With<TProperty>(Expression<Func<T, TProperty>> propertyPicker, Func<TProperty> propertyValueFactory)
@@ -33,23 +40,10 @@ namespace Typesafe.With.Lazy
       if (propertyValueFactory == null) throw new ArgumentNullException(nameof(propertyValueFactory));
 
       var propertyName = propertyPicker.GetPropertyName();
-      AddOrUpdate(propertyName, new ValueFactory<TProperty>(propertyValueFactory));
+      var valueFactory = new ValueFactory<TProperty>(propertyValueFactory);
+      var dictionary = new Dictionary<string, object>(_properties).AddOrUpdate(propertyName, valueFactory);
 
-      return this;
-    }
-    
-    private void AddOrUpdate<TProperty>(string propertyName, TProperty propertyValue)
-    {
-      if (propertyName == null) throw new ArgumentNullException(nameof(propertyName));
-
-      if (_properties.ContainsKey(propertyName))
-      {
-        _properties[propertyName] = propertyValue;
-      }
-      else
-      {
-        _properties.Add(propertyName, propertyValue);
-      }
+      return new LazyInstancedWithSequence<T>(_instance, dictionary);
     }
 
     private T Apply()
