@@ -46,7 +46,7 @@ namespace Typesafe.With
             ConstructorInfo constructorInfo,
             DependentValueResolver<TInstance> dependentValueResolver)
         {
-            var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
+            var remainingProperties = new Dictionary<string, object>(newProperties);
             var parameters = BuildParameters(remainingProperties, constructorInfo, instance, newProperties, dependentValueResolver);
 
             var constructedInstance = constructorInfo.Invoke(parameters) is TInstance castedInstance
@@ -121,7 +121,7 @@ namespace Typesafe.With
             DependentValueResolver<TInstance> dependentValueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
-            var remainingProperties = propertiesToSet.ToDictionary(pair => pair.Key, pair => pair.Value);
+            var remainingProperties = new Dictionary<string, object>(propertiesToSet);
 
             foreach (var property in propertiesToSet)
             {
