@@ -21,12 +21,12 @@ namespace Typesafe.With
             if (properties == null) throw new ArgumentNullException(nameof(properties));
 
             // 1. Construct instance of T (and set properties via constructor)
-            var (constructedInstance, remainingPropertiesAfterCtor) = WithByConstructor(instance, properties, _constructorInfo);
+            var (constructedInstance, remainingPropertiesToSetAfterCtor) = WithByConstructor(instance, properties, _constructorInfo);
             
             // 2. Set new properties via property setters
-            var (enrichedInstance, remainingPropertiesAfterPropSet) = EnrichByProperty(constructedInstance, remainingPropertiesAfterCtor);
+            var (enrichedInstance, remainingPropertiesToSetAfterEnrichment) = EnrichByProperty(constructedInstance, remainingPropertiesToSetAfterCtor);
 
-            if (remainingPropertiesAfterPropSet.Count > 0)
+            if (remainingPropertiesToSetAfterEnrichment.Count > 0)
             {
                 throw new InvalidOperationException($"Error creating instance of type '{typeof(T)}': There are still properties to set but no way to set them.");
             }
@@ -43,12 +43,27 @@ namespace Typesafe.With
             IReadOnlyDictionary<string, object> newProperties,
             ConstructorInfo constructorInfo)
         {
+            var remainingProperties = newProperties.ToDictionary(pair => pair.Key, pair => pair.Value);
+            var parameters = BuildParameters(remainingProperties, constructorInfo, instance, newProperties);
+
+            var constructedInstance = constructorInfo.Invoke(parameters);
+            
+            return constructedInstance is TInstance castedInstance
+                ? (castedInstance, remainingProperties)
+                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
+        }
+        
+        private static object[] BuildParameters<TInstance>(
+            IDictionary<string, object> remainingProperties,
+            ConstructorInfo constructorInfo,
+            TInstance instance,
+            IReadOnlyDictionary<string, object> newProperties)
+        {
             var existingProperties = TypeUtils.GetPropertyDictionary<TInstance>();
-
-            var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
-            var parameters = new List<object>();
-
-            foreach (var parameter in constructorInfo.GetParameters())
+            var resolvedConstructorParameters = new List<object>();
+            var constructorParameters = constructorInfo.GetParameters();
+            
+            foreach (var parameter in constructorParameters)
             {
                 var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
                 var originalValue = existingProperty?.GetValue(instance);
@@ -59,15 +74,11 @@ namespace Typesafe.With
                         : newValue
                     : originalValue;
 
-                parameters.Add(value);
+                resolvedConstructorParameters.Add(value);
                 remainingProperties.Remove(propertyName);
             }
 
-            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance
-                ? (TInstance) constructorInfo.Invoke(parameters.ToArray())
-                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
-
-            return (constructedInstance, remainingProperties);
+            return resolvedConstructorParameters.ToArray();
             
             (PropertyInfo ExistingProperty, string PropertyName) TryFindExistingProperty(ParameterInfo parameterInfo)
             {
@@ -103,8 +114,8 @@ namespace Typesafe.With
             TInstance instance,
             IReadOnlyDictionary<string, object> newProperties)
         {
-            var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
-            var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
+            var existingProperties = TypeUtils.GetPropertyDictionary<TInstance>();
+            var remainingProperties = newProperties.ToDictionary(pair => pair.Key, pair => pair.Value);
 
             foreach (var property in newProperties)
             {

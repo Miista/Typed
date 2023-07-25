@@ -34,6 +34,7 @@ namespace Typesafe.Sandbox
     {
         public string Name { get; }
         public House House { get; }
+        public int Age { get; set; }
     
         public Student(string name, House house) => (Name, House) = (name, house);
     }
@@ -49,9 +50,10 @@ namespace Typesafe.Sandbox
         static void Main(string[] args)
         {
             {
-                var harry = new Student("Harry Potter", House.Gryffindor);
+                var harry = new Student("Harry Potter", House.Gryffindor){Age=12};
                 var malfoy = harry
                     .With(p => p.Name, "Malfoy")
+                    .With(p => p.Age, 10)
                     .With(p => p.House, house => house == House.Slytherin ? House.Gryffindor : house);
 
                 Console.WriteLine(malfoy.Name); // Prints "Malfoy"
