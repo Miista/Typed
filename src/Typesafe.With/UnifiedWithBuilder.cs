@@ -15,7 +15,7 @@ namespace Typesafe.With
             _constructorInfo = constructorInfo ?? throw new ArgumentNullException(nameof(constructorInfo));
         }
 
-        public T Construct(T instance, IReadOnlyDictionary<string, object> properties)
+        public T Construct(T instance, IDictionary<string, object> properties)
         {
             if (instance == null) throw new ArgumentNullException(nameof(instance));
             if (properties == null) throw new ArgumentNullException(nameof(properties));
@@ -40,18 +40,34 @@ namespace Typesafe.With
             return enrichedInstanceWithCopiedProperties;
         }
 
-        private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) WithByConstructor<TInstance>(
+        private static (TInstance Instance, IDictionary<string, object> RemainingProperties) WithByConstructor<TInstance>(
             TInstance instance,
-            IReadOnlyDictionary<string, object> newProperties,
+            IDictionary<string, object> newProperties,
             ConstructorInfo constructorInfo,
             DependentValueResolver<TInstance> dependentValueResolver)
         {
-            var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
-
             var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
-            var parameters = new List<object>();
+            var parameters = BuildParameters(remainingProperties, constructorInfo, instance, newProperties, dependentValueResolver);
 
-            foreach (var parameter in constructorInfo.GetParameters())
+            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance castedInstance
+                ? castedInstance
+                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
+
+            return (constructedInstance, remainingProperties);
+        }
+        
+        private static object[] BuildParameters<TInstance>(
+            IDictionary<string, object> remainingProperties,
+            ConstructorInfo constructorInfo,
+            TInstance instance,
+            IDictionary<string, object> newProperties,
+            DependentValueResolver<TInstance> dependentValueResolver)
+        {
+            var existingProperties = TypeUtils.GetPropertyDictionary<TInstance>();
+            var resolvedConstructorParameters = new List<object>();
+            var constructorParameters = constructorInfo.GetParameters();
+            
+            foreach (var parameter in constructorParameters)
             {
                 var (existingProperty, propertyName) = TryFindExistingProperty(parameter);
                 var originalValue = existingProperty?.GetValue(instance);
@@ -62,15 +78,11 @@ namespace Typesafe.With
                         : newValue
                     : originalValue;
 
-                parameters.Add(value);
+                resolvedConstructorParameters.Add(value);
                 remainingProperties.Remove(propertyName);
             }
 
-            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance
-                ? (TInstance) constructorInfo.Invoke(parameters.ToArray())
-                : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
-
-            return (constructedInstance, remainingProperties);
+            return resolvedConstructorParameters.ToArray();
             
             (PropertyInfo ExistingProperty, string PropertyName) TryFindExistingProperty(ParameterInfo parameterInfo)
             {
@@ -94,24 +106,24 @@ namespace Typesafe.With
         }
 
         /// <summary>
-        /// Mutates <paramref name="instance"/>, setting all properties in <paramref name="newProperties"/>.
+        /// Mutates <paramref name="instance"/>, setting all properties in <paramref name="propertiesToSet"/>.
         /// </summary>
         /// <param name="instance">The instance to mutate.</param>
-        /// <param name="newProperties">The properties to set.</param>
+        /// <param name="propertiesToSet">The properties to set.</param>
         /// <param name="dependentValueResolver">The value resolver.</param>
         /// <typeparam name="TInstance">The instance type.</typeparam>
         /// <returns>A mutated instance.</returns>
         /// <exception cref="InvalidOperationException">If the property does not exist or cannot be written to.</exception>
         /// <exception cref="ArgumentNullException">If any of the arguments are null.</exception>
-        private static (TInstance Instance, IReadOnlyDictionary<string, object> RemainingProperties) EnrichByProperty<TInstance>(
+        private static (TInstance Instance, IDictionary<string, object> RemainingProperties) EnrichByProperty<TInstance>(
             TInstance instance,
-            IReadOnlyDictionary<string, object> newProperties,
+            IDictionary<string, object> propertiesToSet,
             DependentValueResolver<TInstance> dependentValueResolver)
         {
             var existingProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<TInstance>();
-            var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
+            var remainingProperties = propertiesToSet.ToDictionary(pair => pair.Key, pair => pair.Value);
 
-            foreach (var property in newProperties)
+            foreach (var property in propertiesToSet)
             {
                 if (!existingProperties.TryGetValue(property.Key, out var existingProperty))
                 {
@@ -136,7 +148,7 @@ namespace Typesafe.With
 
         private static IEnumerable<PropertyInfo> GetCopyProperties(
             ConstructorInfo constructorInfo,
-            IReadOnlyDictionary<string, object> excludeProperties)
+            IDictionary<string, object> excludeProperties)
         {
             var publicProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<T>();
             
