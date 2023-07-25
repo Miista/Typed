@@ -150,7 +150,7 @@ namespace Typesafe.With
             ConstructorInfo constructorInfo,
             IDictionary<string, object> excludeProperties)
         {
-            var publicProperties = (IDictionary<string, PropertyInfo>) TypeUtils.GetPropertyDictionary<T>();
+            var publicProperties = TypeUtils.GetPropertyDictionary<T>();
             
             // Remove properties already set
             foreach (var parameter in excludeProperties.Select(kvp => kvp.Key))
