@@ -49,7 +49,7 @@ namespace Typesafe.With
             var remainingProperties = new Dictionary<string, object>(newProperties.ToDictionary(pair => pair.Key, pair => pair.Value));
             var parameters = BuildParameters(remainingProperties, constructorInfo, instance, newProperties, dependentValueResolver);
 
-            var constructedInstance = constructorInfo.Invoke(parameters.ToArray()) is TInstance castedInstance
+            var constructedInstance = constructorInfo.Invoke(parameters) is TInstance castedInstance
                 ? castedInstance
                 : throw new InvalidOperationException($"Cannot construct instance of type {typeof(TInstance)}");
 
