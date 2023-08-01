@@ -7,6 +7,9 @@ namespace Typesafe.Merge
         /// <summary>
         /// Merges <paramref name="right"/> into <paramref name="left"/>.
         /// </summary>
+        /// <remarks>
+        /// If a value on the left side is <c>null</c>, the value from the right side will be used.
+        /// </remarks>
         /// <param name="left">The left side of the merge.</param>
         /// <param name="right">The right side of the merge.</param>
         /// <typeparam name="T">The type on both sides of the merge.</typeparam>
@@ -15,6 +18,7 @@ namespace Typesafe.Merge
         public static T Merge<T>(this T left, T right)
             where T : class
         {
+            // TODO: Go through this. It is confusing that the code prefer values from the right side over values on the left side.
             if (left == null) throw new ArgumentNullException(nameof(left));
             if (right == null) throw new ArgumentNullException(nameof(right));
 

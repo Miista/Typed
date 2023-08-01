@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using AutoFixture;
+using AutoFixture.Xunit2;
 using FluentAssertions;
 using Xunit;
 
@@ -33,6 +34,78 @@ namespace Typesafe.Merge.Tests
 
     public class Tests
     {
+        public class Inheritance
+        {
+            internal class ChildClassWithConstructor : TypeWithConstructor
+            {
+                public string LastName { get; }
+        
+                public ChildClassWithConstructor(string lastName, string id, string name, int? age) : base(id, name, age)
+                {
+                    LastName = lastName;
+                }
+            }
+    
+            internal class ChildClassWithPropetySetters : TypeWithPropertySetters
+            {
+                public string LastName { get; set; }
+            }
+    
+            internal class ChildClassWithConstructorAndPropertySetters : TypeWithConstructorAndPropertySetters
+            {
+                public string LastName { get; }
+                public int Number { get; set; }
+
+                public ChildClassWithConstructorAndPropertySetters(string id, string name, string lastName) : base(id, name)
+                {
+                    LastName = lastName;
+                }
+            }
+
+            [Theory]
+            [AutoData]
+            internal void Can_handle_inherited_properties_via_constructor(ChildClassWithConstructor sourceValue)
+            {
+                var destinationValue = new ChildClassWithConstructor(null, null, "name", 12);
+                var result = sourceValue.Merge(destinationValue);
+
+                result.Should().NotBeNull();
+            }
+            
+            [Theory]
+            [AutoData]
+            internal void Can_handle_inherited_properties_via_properties(ChildClassWithPropetySetters sourceValue)
+            {
+                var destinationValue = new ChildClassWithPropetySetters
+                {
+                    Id = null,
+                    Name = "Name",
+                    Age = 12,
+                    LastName = null
+                };
+                var result = sourceValue.Merge(destinationValue);
+
+                result.Should().NotBeNull();
+            }
+            
+            [Theory]
+            [AutoData]
+            internal void Can_handle_inherited_properties_via_constructor_and_properties(ChildClassWithConstructorAndPropertySetters sourceValue)
+            {
+                var destinationValue = new ChildClassWithConstructorAndPropertySetters(null, "name", null)
+                {
+                    Name = "Name",
+                    Age = 12
+                };
+                var result = sourceValue.Merge(destinationValue);
+
+                result.Should().NotBeNull();
+
+                result.Id.Should().Be(sourceValue.Id);
+                result.Age.Should().Be(sourceValue.Age);
+            }
+        }
+        
         public class General
         {
             internal class Container<T>

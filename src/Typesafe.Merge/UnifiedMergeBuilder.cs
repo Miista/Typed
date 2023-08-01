@@ -42,7 +42,6 @@ namespace Typesafe.Merge
             // Resolve parameter values
             var constructorParameters = constructorInfo
                 .GetParameters()
-                .Select(info => info)
                 .Select(valueResolver.Resolve)
                 .ToArray();
 
